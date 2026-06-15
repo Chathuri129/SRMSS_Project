@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Depot Manager Dashboard - SRMSS{% endblock %}
+
+{% block sidebar_nav %}
+<div class="nav-label">Main Menu</div>
+<a href="/depot-manager/dashboard" class="active">📊 Dashboard</a>
+
+<div class="nav-label" style="margin-top: 20px;">Route Management</div>
+<a href="/depot-manager/routes">🗺️ Manage Routes</a>
+
+<div class="nav-label" style="margin-top: 20px;">Vehicle Management</div>
+<a href="/depot-manager/vehicles">🚍 Manage Vehicles</a>
+<a href="/depot-manager/assign-vehicles">🚛 Assign Vehicles</a>
+
+<div class="nav-label" style="margin-top: 20px;">Schedule Management</div>
+<a href="/depot-manager/schedules">📅 Manage Schedules</a>
+<a href="/depot-manager/assign-drivers">👨‍✈️ Assign Drivers</a>
+
+<div class="nav-label" style="margin-top: 20px;">Operations</div>
+<a href="/depot-manager/fuel-logs">⛽ Fuel Logs</a>
+<a href="/depot-manager/maintenance">🔧 Maintenance</a>
+
+<div class="nav-label" style="margin-top: 20px;">Live Tracking</div>
+<a href="/live-track">📍 Live Bus Tracking</a>
+
+<div class="nav-label" style="margin-top: 20px;">Reports</div>
+<a href="/depot-manager/reports">📈 Reports</a>
+
+<div class="nav-label" style="margin-top: 20px;">Account</div>
+<a href="/profile">👤 My Profile</a>
+<a href="/notifications">🔔 Notifications</a>
+{% endblock %}
+
+{% block page_title %}Depot Manager Dashboard{% endblock %}
+
+{% block content %}
+<div style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; padding: 25px 30px; border-radius: 14px; margin-bottom: 30px;">
+    <h2 style="margin-bottom: 5px;">Welcome, {{ session.get('first_name', 'Manager') }}! 🏭</h2>
+    <p style="opacity: 0.9; font-size: 14px;">Manage depot operations including routes, vehicles, schedules, fuel, and maintenance.</p>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">🗺️</div>
+        <h3>{{ stats.total_routes }}</h3>
+        <p>Active Routes</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">🚍</div>
+        <h3>{{ stats.total_vehicles }}</h3>
+        <p>Total Vehicles</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">📅</div>
+        <h3>{{ stats.today_schedules }}</h3>
+        <p>Today's Schedules</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">⏰</div>
+        <h3>{{ stats.upcoming_schedules }}</h3>
+        <p>Upcoming Trips</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">⛽</div>
+        <h3>{{ stats.monthly_fuel }}</h3>
+        <p>Fuel Logs (Month)</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">🔧</div>
+        <h3>{{ stats.monthly_maintenance }}</h3>
+        <p>Maintenance (Month)</p>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 20px;">
+    <div class="card">
+        <div class="card-header">
+            <h3>⚡ Quick Actions</h3>
+        </div>
+        <div class="card-body">
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <a href="/depot-manager/routes" class="btn btn-primary" style="justify-content: center;">🗺️ Manage Routes</a>
+                <a href="/depot-manager/vehicles" class="btn btn-outline" style="justify-content: center;">🚍 Manage Vehicles</a>
+                <a href="/depot-manager/schedules" class="btn btn-outline" style="justify-content: center;">📅 Manage Schedules</a>
+                <a href="/depot-manager/assign-drivers" class="btn btn-outline" style="justify-content: center;">👨‍✈️ Assign Drivers</a>
+                <a href="/depot-manager/assign-vehicles" class="btn btn-outline" style="justify-content: center;">🚛 Assign Vehicles</a>
+                <a href="/depot-manager/fuel-logs" class="btn btn-outline" style="justify-content: center;">⛽ Record Fuel</a>
+                <a href="/depot-manager/maintenance" class="btn btn-outline" style="justify-content: center;">🔧 Record Maintenance</a>
+                <a href="/live-track" class="btn btn-outline" style="justify-content: center;">📍 Live Tracking</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h3>📊 Quick Stats</h3>
+        </div>
+        <div class="card-body">
+            <div style="margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <span>Today's Completion</span>
+                    <strong id="todayProgress">--%</strong>
+                </div>
+                <div style="height: 8px; background: #e5e7eb; border-radius: 10px; overflow: hidden;">
+                    <div id="todayFill" style="height: 100%; width: 0%; background: #16a34a; border-radius: 10px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    fetch('/api/today-schedules-status')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.total > 0) {
+                var percent = (data.completed / data.total) * 100;
+                document.getElementById('todayProgress').textContent = Math.round(percent) + '%';
+                document.getElementById('todayFill').style.width = percent + '%';
+            }
+        })
+        .catch(function(err) { console.error(err); });
+</script>
+{% endblock %}

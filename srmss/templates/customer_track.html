@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Bus Tracking - SRMSS</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #f1f5f9;
+            min-height: 100vh;
+        }
+        
+        /* Top Navigation Bar */
+        .top-nav {
+            background: #1e293b;
+            color: white;
+            padding: 12px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        .logo span { color: #fbbf24; }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+        
+        .btn-logout {
+            padding: 6px 16px;
+            background: rgba(239,68,68,0.2);
+            color: #ef4444;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .btn-logout:hover { background: rgba(239,68,68,0.3); }
+        
+        .back-btn {
+            padding: 6px 16px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        
+        .main-content { padding: 20px 30px; }
+        
+        .legend-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .legend-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; }
+        .legend-items { display: flex; flex-wrap: wrap; gap: 20px; }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+        .legend-dot { width: 20px; height: 4px; border-radius: 2px; }
+        .legend-dot.highway { background: #ef4444; height: 5px; width: 30px; }
+        .legend-dot.aroad { background: #f59e0b; height: 4px; width: 30px; }
+        .legend-dot.start { background: #16a34a; width: 16px; height: 16px; border-radius: 50%; }
+        .legend-dot.end { background: #ef4444; width: 16px; height: 16px; border-radius: 50%; }
+        
+        .stats-bar {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-box {
+            background: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            text-align: center;
+            flex: 1;
+            min-width: 120px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .stat-box .number { font-size: 28px; font-weight: 700; color: #1a73e8; }
+        .stat-box .label { font-size: 12px; color: #64748b; margin-top: 5px; }
+        
+        .map-container {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            height: 550px;
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+        
+        #map { width: 100%; height: 100%; background: #e8eef4; }
+        
+        .bus-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 15px;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+        
+        .bus-card {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border-left: 4px solid #16a34a;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .bus-card:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .bus-card.selected { border-left-color: #1a73e8; background: #f0f4ff; }
+        .bus-card .route-name { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+        .bus-card .info-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; }
+        .bus-card .info-label { color: #64748b; }
+        .bus-card .info-value { font-weight: 600; }
+        .live-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; background: #dcfce7; color: #166534; margin-top: 6px; animation: pulse 2s infinite; }
+        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        
+        .btn-refresh {
+            padding: 8px 20px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .auto-refresh { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #64748b; }
+        .refresh-dot { width: 8px; height: 8px; border-radius: 50%; background: #16a34a; animation: pulse 2s infinite; }
+        
+        @media (max-width: 768px) {
+            .top-nav { padding: 10px 15px; flex-wrap: wrap; gap: 10px; }
+            .stats-bar { flex-direction: column; }
+            .map-container { height: 400px; }
+            .legend-items { flex-direction: column; gap: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <div class="top-nav">
+            <div class="logo">🚌 SR<span>MSS</span></div>
+            <div class="user-info">
+                <span>👤 {{ session.get('first_name', 'User') }} {{ session.get('last_name', '') }}</span>
+                <span class="user-avatar">{{ session.get('first_name', 'U')[0] }}{{ session.get('last_name', 'S')[0] }}</span>
+                <a href="/{{ session.get('role', 'customer') }}/dashboard" class="back-btn">← Dashboard</a>
+                <a href="/logout" class="btn-logout">Logout</a>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <!-- Legend -->
+            <div class="legend-panel">
+                <div class="legend-title">🗺️ Map Legend</div>
+                <div class="legend-items">
+                    <div class="legend-item"><div class="legend-dot highway"></div><span>Expressway / Highway</span></div>
+                    <div class="legend-item"><div class="legend-dot aroad"></div><span>A-Grade Roads (Main Highways)</span></div>
+                    <div class="legend-item"><div class="legend-dot start"></div><span>Start Point 🚩</span></div>
+                    <div class="legend-item"><div class="legend-dot end"></div><span>End Point 🏁</span></div>
+                    <div class="legend-item"><span style="font-size:24px;">🚌</span><span>Live Bus Location</span></div>
+                </div>
+            </div>
+            
+            <div class="stats-bar">
+                <div class="stat-box"><div class="number" id="busCount">0</div><div class="label">Active Buses</div></div>
+                <div class="stat-box"><div class="number" id="routeCount">0</div><div class="label">Routes Active</div></div>
+                <div class="stat-box"><div class="number" id="lastUpdate">--</div><div class="label">Last Updated</div></div>
+                <div class="stat-box"><button class="btn-refresh" onclick="refreshBuses()">🔄 Refresh</button></div>
+            </div>
+            
+            <div class="map-container"><div id="map"></div></div>
+            
+            <h3 style="margin-bottom: 15px;">🚍 Active Buses (Click to track)</h3>
+            <div class="bus-list" id="busList"><div class="bus-card" style="text-align:center;">Loading active buses...</div></div>
+        </div>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // ============================================
+        // SRI LANKA ROAD NETWORK
+        // ============================================
+        
+        var e01Highway = [[6.9271,79.8612],[6.88,79.88],[6.84,79.92],[6.8,79.95],[6.75,79.98],[6.68,80.05],[6.6,80.12],[6.55,80.18],[6.5,80.22],[6.45,80.25],[6.38,80.28],[6.3,80.32],[6.25,80.35],[6.2,80.38],[6.15,80.4],[6.1,80.43],[5.9491,80.5439]];
+        var a2Coastal = [[6.9271,79.8612],[6.9,79.87],[6.87,79.88],[6.85,79.89],[6.82,79.91],[6.79,79.92],[6.77,79.93],[6.74,79.95],[6.71,79.97],[6.68,80],[6.65,80.03],[6.62,80.06],[6.58,80.1],[6.55,80.13],[6.52,80.17],[6.48,80.21],[6.45,80.24],[6.42,80.27],[6.38,80.3],[6.34,80.33],[6.3,80.35],[6.26,80.38],[6.0328,80.2168],[6,80.27],[5.97,80.33],[5.95,80.4],[5.94,80.45],[5.93,80.5],[5.9491,80.5439]];
+        var a1Main = [[6.9271,79.8612],[6.99,79.91],[7.05,79.96],[7.12,80.02],[7.18,80.08],[7.25,80.14],[7.31,80.2],[7.37,80.28],[7.42,80.36],[7.45,80.45],[7.2906,80.6337]];
+        var a9Road = [[7.2906,80.6337],[7.48,80.62],[7.65,80.6],[7.85,80.55],[8,80.5],[8.25,80.45],[8.3114,80.4037],[8.55,80.4],[8.8,80.4],[9.15,80.35],[9.35,80.3],[9.5,80.2],[9.6615,80.0255]];
+        var a6Road = [[7.2906,80.6337],[7.35,80.7],[7.45,80.8],[7.55,80.9],[7.65,81],[7.7,81.2],[7.7173,81.7005]];
+        var a4Road = [[6.9271,79.8612],[6.87,79.9],[6.8,79.98],[6.75,80.05],[6.7055,80.3843],[6.8,80.5],[6.9,80.8],[6.9931,81.0553],[7.2,81.4],[7.5,81.6],[7.7173,81.7005]];
+        var a5Road = [[6.7055,80.3843],[6.6,80.5],[6.5,80.6],[6.4167,81.3333],[6.1241,81.1196]];
+        
+        // City coordinates
+        var cities = {
+            'Colombo': [6.9271,79.8612], 'Kandy': [7.2906,80.6337], 'Galle': [6.0328,80.2168],
+            'Matara': [5.9491,80.5439], 'Jaffna': [9.6615,80.0255], 'Kataragama': [6.4167,81.3333],
+            'Hambantota': [6.1241,81.1196], 'Anuradhapura': [8.3114,80.4037], 'Badulla': [6.9931,81.0553],
+            'Ratnapura': [6.7055,80.3843], 'Trincomalee': [8.5774,81.2128], 'Batticaloa': [7.7173,81.7005],
+            'Nuwara Eliya': [6.9497,80.7891], 'Kurunegala': [7.4863,80.3623], 'Negombo': [7.2092,79.8357]
+        };
+        
+        // Route data with start and end points
+        var routeInfo = {
+            'Colombo - Kandy Express': { start: 'Colombo', end: 'Kandy', startCoords: [6.9271,79.8612], endCoords: [7.2906,80.6337] },
+            'Colombo - Galle Coastal': { start: 'Colombo', end: 'Galle', startCoords: [6.9271,79.8612], endCoords: [6.0328,80.2168] },
+            'Kandy - Nuwara Eliya': { start: 'Kandy', end: 'Nuwara Eliya', startCoords: [7.2906,80.6337], endCoords: [6.9497,80.7891] },
+            'Galle - Matara Local': { start: 'Galle', end: 'Matara', startCoords: [6.0328,80.2168], endCoords: [5.9491,80.5439] },
+            'Kataragama - Jaffna': { start: 'Kataragama', end: 'Jaffna', startCoords: [6.4167,81.3333], endCoords: [9.6615,80.0255] },
+            'Matara - Dikwalla': { start: 'Matara', end: 'Dikwalla', startCoords: [5.9491,80.5439], endCoords: [5.92,80.62] },
+            'Matara - Thangalla': { start: 'Matara', end: 'Thangalla', startCoords: [5.9491,80.5439], endCoords: [6.05,80.8] },
+            'Hambantota - Matara': { start: 'Hambantota', end: 'Matara', startCoords: [6.1241,81.1196], endCoords: [5.9491,80.5439] }
+        };
+        
+        // Sample buses with start and end points
+        var sampleBuses = [
+            { driver_id:1, driver_name:'Rishu Kumar', route_name:'Colombo - Kandy Express', from:'Colombo', to:'Kandy', vehicle:'BUS-001', latitude:6.9271, longitude:79.8612, speed:65, heading:'NE' },
+            { driver_id:2, driver_name:'Sewwandi Mahadurage', route_name:'Colombo - Galle Coastal', from:'Colombo', to:'Galle', vehicle:'BUS-002', latitude:6.85, longitude:79.89, speed:55, heading:'S' },
+            { driver_id:3, driver_name:'Danushka Rathnayaka', route_name:'Kandy - Nuwara Eliya', from:'Kandy', to:'Nuwara Eliya', vehicle:'BUS-003', latitude:7.2906, longitude:80.6337, speed:45, heading:'SE' },
+            { driver_id:4, driver_name:'Kamal Perera', route_name:'Galle - Matara Local', from:'Galle', to:'Matara', vehicle:'BUS-004', latitude:6.0328, longitude:80.2168, speed:50, heading:'E' }
+        ];
+        
+        var map, busMarkers = {}, startMarkers = {}, endMarkers = {}, busData = {}, selectedBusId = null;
+        
+        function initMap() {
+            map = L.map('map').setView([7.8731,80.7718], 8);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+            
+            L.polyline(e01Highway, { color: '#ef4444', weight: 5 }).addTo(map);
+            L.polyline(a2Coastal, { color: '#f59e0b', weight: 4 }).addTo(map);
+            L.polyline(a1Main, { color: '#f59e0b', weight: 4 }).addTo(map);
+            L.polyline(a9Road, { color: '#f59e0b', weight: 4 }).addTo(map);
+            L.polyline(a6Road, { color: '#f59e0b', weight: 4 }).addTo(map);
+            L.polyline(a4Road, { color: '#f59e0b', weight: 4 }).addTo(map);
+            L.polyline(a5Road, { color: '#f59e0b', weight: 4 }).addTo(map);
+            
+            for (var city in cities) {
+                L.circleMarker(cities[city], { radius: 5, fillColor: '#1a73e8', color: 'white', weight: 2, fillOpacity: 0.8 })
+                    .addTo(map).bindPopup('<b>' + city + '</b>');
+            }
+        }
+        
+        function getBusIcon(heading) {
+            var rot = '';
+            if (heading === 'N') rot = 'rotate(0deg)';
+            else if (heading === 'NE') rot = 'rotate(45deg)';
+            else if (heading === 'E') rot = 'rotate(90deg)';
+            else if (heading === 'SE') rot = 'rotate(135deg)';
+            else if (heading === 'S') rot = 'rotate(180deg)';
+            else if (heading === 'SW') rot = 'rotate(225deg)';
+            else if (heading === 'W') rot = 'rotate(270deg)';
+            else if (heading === 'NW') rot = 'rotate(315deg)';
+            return L.divIcon({
+                html: '<div style="font-size:32px; background:white; border-radius:50%; padding:5px; box-shadow:0 2px 8px rgba(0,0,0,0.2); border:2px solid #1a73e8; width:48px; height:48px; display:flex; align-items:center; justify-content:center; transform:'+rot+'">🚌</div>',
+                iconSize: [48,48], iconAnchor: [24,24], popupAnchor: [0,-24]
+            });
+        }
+        
+        function getStartMarker() {
+            return L.divIcon({ html: '<div style="font-size:24px;">🚩</div>', iconSize: [24,24], iconAnchor: [12,24] });
+        }
+        
+        function getEndMarker() {
+            return L.divIcon({ html: '<div style="font-size:24px;">🏁</div>', iconSize: [24,24], iconAnchor: [12,24] });
+        }
+        
+        function addStartEndMarkers(bus) {
+            var info = routeInfo[bus.route_name];
+            if (!info) return;
+            
+            if (startMarkers[bus.driver_id]) map.removeLayer(startMarkers[bus.driver_id]);
+            if (endMarkers[bus.driver_id]) map.removeLayer(endMarkers[bus.driver_id]);
+            
+            startMarkers[bus.driver_id] = L.marker(info.startCoords, { icon: getStartMarker() })
+                .addTo(map).bindPopup('<b>🚩 START</b><br>' + info.start + '<br>' + bus.route_name);
+            endMarkers[bus.driver_id] = L.marker(info.endCoords, { icon: getEndMarker() })
+                .addTo(map).bindPopup('<b>🏁 END</b><br>' + info.end + '<br>' + bus.route_name);
+        }
+        
+        function getPopupContent(bus) {
+            return '<div style="min-width:200px">' +
+                '<b>🚌 ' + bus.route_name + '</b><hr>' +
+                '<b>📍 From:</b> 🚩 ' + bus.from + '<br>' +
+                '<b>🏁 To:</b> 🏁 ' + bus.to + '<br>' +
+                '<b>🚍 Vehicle:</b> ' + bus.vehicle + '<br>' +
+                '<b>👨‍✈️ Driver:</b> ' + bus.driver_name + '<br>' +
+                '<b>⚡ Speed:</b> ' + (bus.speed||0) + ' km/h' +
+                '</div>';
+        }
+        
+        function updateBuses(buses) {
+            if (!map) return;
+            for (var id in busMarkers) if (busMarkers[id]) map.removeLayer(busMarkers[id]);
+            for (var id in startMarkers) if (startMarkers[id]) map.removeLayer(startMarkers[id]);
+            for (var id in endMarkers) if (endMarkers[id]) map.removeLayer(endMarkers[id]);
+            busMarkers = {}; startMarkers = {}; endMarkers = {}; busData = {};
+            
+            for (var i = 0; i < buses.length; i++) {
+                var bus = buses[i];
+                var marker = L.marker([bus.latitude, bus.longitude], { icon: getBusIcon(bus.heading) })
+                    .addTo(map).bindPopup(getPopupContent(bus));
+                marker.on('click', (function(id) { return function() { selectBus(id); }; })(bus.driver_id));
+                busMarkers[bus.driver_id] = marker;
+                busData[bus.driver_id] = bus;
+                addStartEndMarkers(bus);
+            }
+        }
+        
+        function updateStats(count, buses) {
+            document.getElementById('busCount').textContent = count;
+            var routes = {};
+            for (var i = 0; i < buses.length; i++) routes[buses[i].route_name] = 1;
+            document.getElementById('routeCount').textContent = Object.keys(routes).length;
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+        }
+        
+        function updateBusList(buses) {
+            var container = document.getElementById('busList');
+            if (!buses || buses.length === 0) {
+                container.innerHTML = '<div class="bus-card" style="text-align:center;">No active buses at the moment</div>';
+                return;
+            }
+            var html = '';
+            for (var i = 0; i < buses.length; i++) {
+                var bus = buses[i];
+                html += '<div class="bus-card ' + (selectedBusId === bus.driver_id ? 'selected' : '') + '" onclick="selectBus(' + bus.driver_id + ')">' +
+                    '<div class="route-name">🚌 ' + bus.route_name + '</div>' +
+                    '<div class="info-row"><span class="info-label">Route:</span><span class="info-value">🚩 ' + bus.from + ' → 🏁 ' + bus.to + '</span></div>' +
+                    '<div class="info-row"><span class="info-label">Vehicle:</span><span class="info-value">' + bus.vehicle + '</span></div>' +
+                    '<div class="info-row"><span class="info-label">Driver:</span><span class="info-value">' + bus.driver_name + '</span></div>' +
+                    '<div class="info-row"><span class="info-label">Speed:</span><span class="info-value">' + (bus.speed||0) + ' km/h</span></div>' +
+                    '<div class="live-badge">● LIVE</div></div>';
+            }
+            container.innerHTML = html;
+        }
+        
+        function selectBus(busId) {
+            selectedBusId = busId;
+            var bus = busData[busId];
+            if (bus && map) {
+                map.setView([bus.latitude, bus.longitude], 10);
+                busMarkers[busId].openPopup();
+                var info = routeInfo[bus.route_name];
+                if (info) {
+                    var bounds = L.latLngBounds([bus.latitude, bus.longitude], info.startCoords, info.endCoords);
+                    map.fitBounds(bounds, { padding: [50,50] });
+                }
+            }
+            var busArray = [];
+            for (var id in busData) if (busData[id]) busArray.push(busData[id]);
+            updateBusList(busArray);
+        }
+        
+        function refreshBuses() { loadBuses(); }
+        
+        async function loadBuses() {
+            try {
+                var res = await fetch('/api/active-buses');
+                var data = await res.json();
+                if (data.success && data.buses && data.buses.length > 0) {
+                    updateBuses(data.buses);
+                    updateStats(data.buses.length, data.buses);
+                    updateBusList(data.buses);
+                } else {
+                    updateBuses(sampleBuses);
+                    updateStats(sampleBuses.length, sampleBuses);
+                    updateBusList(sampleBuses);
+                }
+            } catch(e) {
+                updateBuses(sampleBuses);
+                updateStats(sampleBuses.length, sampleBuses);
+                updateBusList(sampleBuses);
+            }
+        }
+        
+        window.selectBus = selectBus;
+        window.refreshBuses = refreshBuses;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            loadBuses();
+            setInterval(loadBuses, 5000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Schedule - SRMSS Driver</title>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --dark: #1e293b;
+            --gray: #64748b;
+            --border: #e5e7eb;
+            --danger: #ef4444;
+            --success: #16a34a;
+            --warning: #d97706;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #f1f5f9;
+            min-height: 100vh;
+            display: flex;
+        }
+        
+        .sidebar {
+            width: 260px; background: var(--dark); color: #cbd5e1;
+            min-height: 100vh; position: fixed; left: 0; top: 0; bottom: 0;
+            z-index: 100; display: flex; flex-direction: column;
+        }
+        
+        .sidebar-brand {
+            padding: 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; gap: 12px;
+        }
+        
+        .sidebar-brand .icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, #16a34a, #22c55e);
+            border-radius: 10px; display: flex; align-items: center;
+            justify-content: center; font-size: 20px;
+        }
+        
+        .sidebar-brand h3 { font-size: 16px; font-weight: 700; color: white; }
+        .sidebar-brand span { font-size: 11px; color: #4ade80; display: block; font-weight: 600; }
+        
+        .sidebar-nav { flex: 1; padding: 20px 15px; overflow-y: auto; }
+        
+        .sidebar-nav .nav-label {
+            font-size: 10px; text-transform: uppercase; letter-spacing: 2px;
+            color: #64748b; margin-bottom: 10px; padding: 0 10px; font-weight: 700;
+        }
+        
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 15px; color: #94a3b8; text-decoration: none;
+            border-radius: 8px; font-size: 14px; font-weight: 500;
+            transition: all 0.2s; margin-bottom: 2px;
+        }
+        
+        .sidebar-nav a:hover { background: rgba(255,255,255,0.05); color: white; }
+        .sidebar-nav a.active { background: rgba(34,197,94,0.15); color: #4ade80; font-weight: 600; }
+        
+        .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+        
+        .user-info { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        
+        .user-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: linear-gradient(135deg, #16a34a, #22c55e);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 14px; color: white;
+        }
+        
+        .user-details { flex: 1; }
+        .user-details .name { font-weight: 600; font-size: 13px; color: white; }
+        .user-details .role { font-size: 11px; color: #4ade80; font-weight: 600; }
+        
+        .btn-logout {
+            display: block; width: 100%; padding: 8px;
+            background: rgba(239,68,68,0.1); color: #ef4444;
+            border: 1px solid rgba(239,68,68,0.3); border-radius: 6px;
+            text-align: center; text-decoration: none;
+            font-size: 13px; font-weight: 500; transition: all 0.2s;
+        }
+        .btn-logout:hover { background: rgba(239,68,68,0.2); }
+        
+        .main-content { margin-left: 260px; flex: 1; }
+        
+        .top-bar {
+            background: white; padding: 16px 30px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 50;
+        }
+        
+        .top-bar h2 { font-size: 20px; font-weight: 700; color: var(--dark); }
+        
+        .content-area { padding: 30px; }
+        
+        .flash-message {
+            padding: 12px 15px; border-radius: 8px; margin-bottom: 20px;
+            font-size: 14px; font-weight: 500;
+        }
+        .flash-success { background: #d4edda; color: #155724; }
+        .flash-error { background: #f8d7da; color: #721c24; }
+        
+        .card {
+            background: white; border-radius: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden;
+        }
+        
+        table { width: 100%; border-collapse: collapse; }
+        
+        th {
+            background: #f8fafc; padding: 12px 16px; text-align: left;
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.5px; color: var(--gray); border-bottom: 2px solid var(--border);
+        }
+        
+        td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--dark); }
+        tr:hover { background: #f8fafc; }
+        
+        .badge {
+            padding: 4px 12px; border-radius: 20px;
+            font-size: 11px; font-weight: 700; display: inline-block;
+        }
+        .badge-success { background: #dcfce7; color: #166534; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        .badge-info { background: #dbeafe; color: #1e40af; }
+        .badge-neutral { background: #f1f5f9; color: #475569; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+        
+        @media (max-width: 768px) {
+            .sidebar { width: 70px; }
+            .sidebar-brand h3, .sidebar-brand span,
+            .sidebar-nav a span, .sidebar-nav .nav-label,
+            .user-details { display: none; }
+            .sidebar-nav a { justify-content: center; padding: 12px; }
+            .main-content { margin-left: 70px; }
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <div class="icon">🚌</div>
+            <div>
+                <h3>SRMSS</h3>
+                <span>Driver Portal</span>
+            </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <div class="nav-label">Main Menu</div>
+            <a href="/driver/dashboard">📊 Dashboard</a>
+            <a href="/driver/schedule" class="active">📅 My Schedule</a>
+            <a href="/driver/today-route">🗺️ Today's Route</a>
+            <a href="/driver/fuel-log">⛽ Fuel Log</a>
+            <a href="/driver/reports">📋 Reports</a>
+            <a href="/driver/profile">👤 Profile</a>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">{{ session.get('first_name', 'D')[0] }}{{ session.get('last_name', 'U')[0] }}</div>
+                <div class="user-details">
+                    <div class="name">{{ session.get('first_name', 'Driver') }} {{ session.get('last_name', 'User') }}</div>
+                    <div class="role">Driver</div>
+                </div>
+            </div>
+            <a href="/logout" class="btn-logout">🚪 Logout</a>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="top-bar">
+            <h2>📅 My Schedule</h2>
+            <span style="color:var(--gray);">All assigned trips</span>
+        </div>
+        
+        <div class="content-area">
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <div class="card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Route</th>
+                            <th>From → To</th>
+                            <th>Distance</th>
+                            <th>Vehicle</th>
+                            <th>Departure</th>
+                            <th>Arrival</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if schedules %}
+                            {% for schedule in schedules %}
+                            <tr>
+                                <td><strong>{{ schedule.schedule_date }}</strong></td>
+                                <td>{{ schedule.route_name }}</td>
+                                <td>{{ schedule.start_point }} → {{ schedule.end_point }}</td>
+                                <td>{{ schedule.total_distance }} km</td>
+                                <td>{{ schedule.registration_number }}</td>
+                                <td>{{ schedule.departure_time }}</td>
+                                <td>{{ schedule.arrival_time }}</td>
+                                <td>
+                                    {% if schedule.status == 'completed' %}
+                                        <span class="badge badge-success">✅ Completed</span>
+                                    {% elif schedule.status == 'on_time' %}
+                                        <span class="badge badge-success">✅ On Time</span>
+                                    {% elif schedule.status == 'delayed' %}
+                                        <span class="badge badge-warning">⚠️ Delayed</span>
+                                    {% elif schedule.status == 'cancelled' %}
+                                        <span class="badge badge-danger">❌ Cancelled</span>
+                                    {% else %}
+                                        <span class="badge badge-info">📋 Scheduled</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 50px; color: var(--gray);">
+                                    <div style="font-size: 48px; margin-bottom: 10px;">📅</div>
+                                    <strong>No schedules assigned yet.</strong><br>
+                                    <small>Your assigned trips will appear here.</small>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+            
+        </div>
+    </div>
+    
+</body>
+</html>

@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Routes - SRMSS</title>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --dark: #1e293b;
+            --gray: #64748b;
+            --light: #f8fafc;
+            --border: #e5e7eb;
+            --white: #ffffff;
+            --danger: #ef4444;
+            --success: #16a34a;
+            --warning: #d97706;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #f1f5f9;
+            min-height: 100vh;
+            display: flex;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 260px; background: var(--dark); color: #cbd5e1;
+            min-height: 100vh; position: fixed; left: 0; top: 0; bottom: 0;
+            z-index: 100; display: flex; flex-direction: column;
+        }
+        
+        .sidebar-brand {
+            padding: 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; gap: 12px;
+        }
+        
+        .sidebar-brand .icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            border-radius: 10px; display: flex; align-items: center;
+            justify-content: center; font-size: 20px;
+        }
+        
+        .sidebar-brand h3 { font-size: 16px; font-weight: 700; color: white; }
+        .sidebar-brand span { font-size: 11px; color: #fbbf24; display: block; font-weight: 600; }
+        
+        .sidebar-nav { flex: 1; padding: 20px 15px; overflow-y: auto; }
+        
+        .sidebar-nav .nav-label {
+            font-size: 10px; text-transform: uppercase; letter-spacing: 2px;
+            color: #64748b; margin-bottom: 10px; padding: 0 10px; font-weight: 700;
+        }
+        
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 15px; color: #94a3b8; text-decoration: none;
+            border-radius: 8px; font-size: 14px; font-weight: 500;
+            transition: all 0.2s; margin-bottom: 2px;
+        }
+        
+        .sidebar-nav a:hover { background: rgba(255,255,255,0.05); color: white; }
+        .sidebar-nav a.active { background: rgba(251,191,36,0.15); color: #fbbf24; font-weight: 600; }
+        
+        .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+        
+        .user-info { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        
+        .user-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 14px; color: #1e293b;
+        }
+        
+        .user-details { flex: 1; }
+        .user-details .name { font-weight: 600; font-size: 13px; color: white; }
+        .user-details .role { font-size: 11px; color: #fbbf24; font-weight: 600; }
+        
+        .btn-logout {
+            display: block; width: 100%; padding: 8px;
+            background: rgba(239,68,68,0.1); color: #ef4444;
+            border: 1px solid rgba(239,68,68,0.3); border-radius: 6px;
+            text-align: center; text-decoration: none;
+            font-size: 13px; font-weight: 500; transition: all 0.2s;
+        }
+        .btn-logout:hover { background: rgba(239,68,68,0.2); }
+        
+        /* Main Content */
+        .main-content { margin-left: 260px; flex: 1; }
+        
+        .top-bar {
+            background: white; padding: 16px 30px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 50;
+        }
+        
+        .top-bar h2 { font-size: 20px; font-weight: 700; color: var(--dark); }
+        
+        .content-area { padding: 30px; }
+        
+        /* Flash Messages */
+        .flash-message {
+            padding: 12px 15px; border-radius: 8px; margin-bottom: 20px;
+            font-size: 14px; font-weight: 500;
+        }
+        .flash-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        
+        /* Buttons */
+        .btn {
+            padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600;
+            border: none; cursor: pointer; transition: all 0.2s;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #1557b0; transform: translateY(-1px); }
+        .btn-outline { background: white; color: var(--primary); border: 2px solid var(--primary); }
+        .btn-outline:hover { background: var(--primary); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #dc2626; transform: translateY(-1px); }
+        .btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 6px; }
+        
+        /* Modal */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+            z-index: 1000; align-items: center; justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        
+        .modal {
+            background: white; border-radius: 16px; width: 90%; max-width: 550px;
+            max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            padding: 20px 24px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .modal-header h3 { font-size: 18px; font-weight: 700; }
+        
+        .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--gray); }
+        .close-btn:hover { color: var(--danger); }
+        
+        .modal-body { padding: 24px; }
+        
+        .modal-footer {
+            padding: 16px 24px; border-top: 1px solid var(--border);
+            display: flex; gap: 10px; justify-content: flex-end;
+        }
+        
+        /* Form */
+        .form-group { margin-bottom: 16px; }
+        
+        .form-group label {
+            display: block; margin-bottom: 6px; color: var(--dark);
+            font-weight: 600; font-size: 13px;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 10px 14px;
+            border: 2px solid var(--border); border-radius: 8px;
+            font-size: 14px; transition: all 0.3s; font-family: inherit;
+        }
+        
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none; border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(26,115,232,0.1);
+        }
+        
+        .form-group textarea { resize: vertical; min-height: 60px; }
+        
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        
+        /* Table */
+        .card {
+            background: white; border-radius: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden;
+        }
+        
+        table { width: 100%; border-collapse: collapse; }
+        
+        th {
+            background: #f8fafc; padding: 12px 16px; text-align: left;
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.5px; color: var(--gray);
+            border-bottom: 2px solid var(--border);
+        }
+        
+        td {
+            padding: 12px 16px; border-bottom: 1px solid var(--border);
+            font-size: 13px; color: var(--dark);
+        }
+        
+        tr:hover { background: #f8fafc; }
+        
+        .badge {
+            padding: 4px 12px; border-radius: 20px;
+            font-size: 11px; font-weight: 700; display: inline-block;
+        }
+        .badge-urban { background: #dbeafe; color: #1e40af; }
+        .badge-express { background: #fef3c7; color: #92400e; }
+        .badge-intercity { background: #dcfce7; color: #166534; }
+        .badge-rural { background: #fce7f3; color: #9d174d; }
+        
+        @media (max-width: 768px) {
+            .sidebar { width: 70px; }
+            .sidebar-brand h3, .sidebar-brand span,
+            .sidebar-nav a span, .sidebar-nav .nav-label,
+            .user-details { display: none; }
+            .sidebar-nav a { justify-content: center; padding: 12px; }
+            .main-content { margin-left: 70px; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <div class="icon">{% if session.get('role') == 'admin' %}👑{% else %}👁️{% endif %}</div>
+            <div>
+                <h3>SRMSS</h3>
+                <span>{% if session.get('role') == 'admin' %}Admin Panel{% else %}Supervisor Panel{% endif %}</span>
+            </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <div class="nav-label">Main Menu</div>
+            <a href="{% if session.get('role') == 'admin' %}/admin/dashboard{% else %}/supervisor/dashboard{% endif %}">📊 Dashboard</a>
+            
+            <div class="nav-label" style="margin-top: 20px;">Management</div>
+            <a href="/admin/routes" class="active">🗺️ Routes</a>
+            <a href="/admin/vehicles">🚍 Vehicles</a>
+            <a href="/admin/drivers">👨‍✈️ Drivers</a>
+            <a href="/admin/schedules">📅 Schedules</a>
+            
+            <div class="nav-label" style="margin-top: 20px;">Operations</div>
+            <a href="/admin/fuel-logs">⛽ Fuel Logs</a>
+            <a href="/admin/maintenance">🔧 Maintenance</a>
+            
+            {% if session.get('role') == 'admin' %}
+            <div class="nav-label" style="margin-top: 20px;">System</div>
+            <a href="/admin/users">👥 Users</a>
+            <a href="/admin/reports">📈 Reports</a>
+            <a href="/admin/settings">⚙️ Settings</a>
+            {% else %}
+            <div class="nav-label" style="margin-top: 20px;">Reports</div>
+            <a href="/supervisor/reports">📈 View Reports</a>
+            {% endif %}
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">{{ session.get('first_name', 'A')[0] }}{{ session.get('last_name', 'U')[0] }}</div>
+                <div class="user-details">
+                    <div class="name">{{ session.get('first_name', 'Admin') }} {{ session.get('last_name', 'User') }}</div>
+                    <div class="role">{{ session.get('role', 'Administrator')|title }}</div>
+                </div>
+            </div>
+            <a href="/logout" class="btn-logout">🚪 Logout</a>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="top-bar">
+            <h2>🗺️ Route Management</h2>
+            <button class="btn btn-primary" onclick="openModal()">➕ Add New Route</button>
+        </div>
+        
+        <div class="content-area">
+            
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <!-- Routes Table -->
+            <div class="card">
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Route Code</th>
+                                <th>Route Name</th>
+                                <th>From → To</th>
+                                <th>Distance (km)</th>
+                                <th>Base Fare</th>
+                                <th>Type</th>
+                                <th>Stops</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if routes %}
+                                {% for route in routes %}
+                                <tr>
+                                    <td data-label="ID"><strong>#{{ route.id }}</strong></td>
+                                    <td data-label="Route Code">{{ route.route_code }}</td>
+                                    <td data-label="Route Name"><strong>{{ route.route_name }}</strong></td>
+                                    <td data-label="From To">{{ route.start_point }} → {{ route.end_point }}</td>
+                                    <td data-label="Distance">{{ route.total_distance }} km</td>
+                                    <td data-label="Fare">Rs. {{ "%.2f"|format(route.base_fare|float) }}</td>
+                                    <td data-label="Type">
+                                        {% if route.route_type == 'urban' %}
+                                            <span class="badge badge-urban">🏙️ Urban</span>
+                                        {% elif route.route_type == 'express' %}
+                                            <span class="badge badge-express">🚄 Express</span>
+                                        {% elif route.route_type == 'intercity' %}
+                                            <span class="badge badge-intercity">🏛️ Intercity</span>
+                                        {% elif route.route_type == 'rural' %}
+                                            <span class="badge badge-rural">🌾 Rural</span>
+                                        {% else %}
+                                            <span class="badge">{{ route.route_type|title }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td data-label="Stops">{{ route.intermediate_stops or 'None' }}</td>
+                                    <td data-label="Actions">
+                                        <button class="btn btn-primary btn-sm"
+                                                data-id="{{ route.id }}"
+                                                data-code="{{ route.route_code }}"
+                                                data-name="{{ route.route_name }}"
+                                                data-start="{{ route.start_point }}"
+                                                data-end="{{ route.end_point }}"
+                                                data-stops="{{ route.intermediate_stops or '' }}"
+                                                data-distance="{{ route.total_distance }}"
+                                                data-type="{{ route.route_type }}"
+                                                data-fare="{{ route.base_fare }}"
+                                                onclick="openEditModal(this)"
+                                                style="margin-right: 5px;">✏️ Edit</button>
+                                        
+                                        {% if session.get('role') == 'admin' %}
+                                        <form method="POST" action="/admin/routes/delete" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete route {{ route.route_name }}?');">
+                                            <input type="hidden" name="route_id" value="{{ route.id }}">
+                                            <button type="submit" class="btn btn-danger btn-sm">🗑️ Delete</button>
+                                        </form>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="9" style="text-align: center; padding: 40px; color: var(--gray);">
+                                        No routes found. Click "Add New Route" to create one.
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+    <!-- Add Route Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>🗺️ Add New Route</h3>
+                <button class="close-btn" onclick="closeModal()">✕</button>
+            </div>
+            <form method="POST" action="/admin/routes">
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Route Code *</label>
+                            <input type="text" name="route_code" placeholder="e.g., R-005" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Route Type</label>
+                            <select name="route_type">
+                                <option value="urban">Urban</option>
+                                <option value="express">Express</option>
+                                <option value="intercity">Intercity</option>
+                                <option value="rural">Rural</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Route Name *</label>
+                        <input type="text" name="route_name" placeholder="e.g., Colombo - Kandy Express" required>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Start Point *</label>
+                            <input type="text" name="start_point" placeholder="e.g., Colombo" required>
+                        </div>
+                        <div class="form-group">
+                            <label>End Point *</label>
+                            <input type="text" name="end_point" placeholder="e.g., Kandy" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Intermediate Stops</label>
+                        <textarea name="intermediate_stops" placeholder="e.g., Kadawatha, Warakapola, Mawanella (comma separated)"></textarea>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Total Distance (km) *</label>
+                            <input type="number" name="total_distance" placeholder="e.g., 115.5" required step="0.1" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Base Fare (Rs.)</label>
+                            <input type="number" name="base_fare" placeholder="e.g., 500" step="0.01" min="0" value="0">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">💾 Save Route</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Edit Route Modal -->
+    <div class="modal-overlay" id="editModalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>✏️ Edit Route</h3>
+                <button class="close-btn" onclick="closeEditModal()">✕</button>
+            </div>
+            <form method="POST" action="/admin/routes/edit" id="editRouteForm">
+                <input type="hidden" name="route_id" id="edit_route_id">
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Route Code *</label>
+                            <input type="text" name="route_code" id="edit_route_code" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Route Type</label>
+                            <select name="route_type" id="edit_route_type">
+                                <option value="urban">Urban</option>
+                                <option value="express">Express</option>
+                                <option value="intercity">Intercity</option>
+                                <option value="rural">Rural</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Route Name *</label>
+                        <input type="text" name="route_name" id="edit_route_name" required>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Start Point *</label>
+                            <input type="text" name="start_point" id="edit_start_point" required>
+                        </div>
+                        <div class="form-group">
+                            <label>End Point *</label>
+                            <input type="text" name="end_point" id="edit_end_point" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Intermediate Stops</label>
+                        <textarea name="intermediate_stops" id="edit_intermediate_stops" placeholder="e.g., Kadawatha, Warakapola, Mawanella (comma separated)"></textarea>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Total Distance (km) *</label>
+                            <input type="number" name="total_distance" id="edit_total_distance" required step="0.1" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Base Fare (Rs.)</label>
+                            <input type="number" name="base_fare" id="edit_base_fare" step="0.01" min="0" value="0">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">💾 Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        function openModal() {
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+        
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+        
+        function openEditModal(button) {
+            document.getElementById('edit_route_id').value = button.getAttribute('data-id');
+            document.getElementById('edit_route_code').value = button.getAttribute('data-code');
+            document.getElementById('edit_route_name').value = button.getAttribute('data-name');
+            document.getElementById('edit_start_point').value = button.getAttribute('data-start');
+            document.getElementById('edit_end_point').value = button.getAttribute('data-end');
+            document.getElementById('edit_intermediate_stops').value = button.getAttribute('data-stops') || '';
+            document.getElementById('edit_total_distance').value = button.getAttribute('data-distance');
+            document.getElementById('edit_route_type').value = button.getAttribute('data-type') || 'urban';
+            document.getElementById('edit_base_fare').value = button.getAttribute('data-fare') || 0;
+            document.getElementById('editModalOverlay').classList.add('active');
+        }
+        
+        function closeEditModal() {
+            document.getElementById('editModalOverlay').classList.remove('active');
+        }
+        
+        document.getElementById('modalOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+        
+        document.getElementById('editModalOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closeEditModal();
+        });
+    </script>
+    
+</body>
+</html>

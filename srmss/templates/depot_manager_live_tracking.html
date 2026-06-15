@@ -1,0 +1,1009 @@
+{% extends "base.html" %}
+
+{% block title %}Live Bus Tracking - Depot Manager{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    .live-tracking-header {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        color: white;
+        padding: 25px 30px;
+        border-radius: 14px;
+        margin-bottom: 30px;
+    }
+    
+    .stats-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .stat-summary-card {
+        background: white;
+        padding: 20px;
+        border-radius: 14px;
+        text-align: center;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .stat-summary-card .number {
+        font-size: 32px;
+        font-weight: 700;
+        color: #8b5cf6;
+    }
+    
+    .stat-summary-card .label {
+        font-size: 13px;
+        color: #64748b;
+        margin-top: 5px;
+    }
+    
+    .bus-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(550px, 1fr));
+        gap: 25px;
+    }
+    
+    .bus-tracking-card {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .bus-tracking-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    }
+    
+    .bus-card-header {
+        background: linear-gradient(135deg, #1e293b, #334155);
+        color: white;
+        padding: 16px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .bus-title {
+        font-size: 16px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .bus-title .bus-icon {
+        font-size: 24px;
+    }
+    
+    .bus-status {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    
+    .status-live {
+        background: #16a34a;
+        color: white;
+        animation: pulse 2s infinite;
+    }
+    
+    .status-waiting {
+        background: #d97706;
+        color: white;
+    }
+    
+    .status-completed {
+        background: #1a73e8;
+        color: white;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+    }
+    
+    .bus-info-panel {
+        padding: 12px 16px;
+        background: #f8fafc;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 10px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .info-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        color: #64748b;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+    
+    .info-value {
+        font-size: 13px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-top: 3px;
+    }
+    
+    .map-container {
+        height: 320px;
+        width: 100%;
+        background: #e8eef4;
+        position: relative;
+    }
+    
+    .bus-map {
+        width: 100%;
+        height: 100%;
+    }
+    
+    .progress-section {
+        padding: 12px 16px;
+        background: white;
+        border-top: 1px solid #e5e7eb;
+    }
+    
+    .progress-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        margin-bottom: 6px;
+        color: #64748b;
+    }
+    
+    .progress-bar-container {
+        height: 6px;
+        background: #e5e7eb;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #16a34a, #22c55e);
+        border-radius: 10px;
+        width: 0%;
+        transition: width 0.3s ease;
+    }
+    
+    .bus-controls {
+        padding: 10px 16px;
+        background: #f8fafc;
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        flex-wrap: wrap;
+        border-top: 1px solid #e5e7eb;
+    }
+    
+    .btn-control {
+        padding: 6px 14px;
+        border: none;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .btn-start {
+        background: #16a34a;
+        color: white;
+    }
+    
+    .btn-start:hover {
+        background: #15803d;
+        transform: translateY(-1px);
+    }
+    
+    .btn-reset {
+        background: #d97706;
+        color: white;
+    }
+    
+    .btn-reset:hover {
+        background: #b45309;
+        transform: translateY(-1px);
+    }
+    
+    .btn-pause {
+        background: #64748b;
+        color: white;
+    }
+    
+    .btn-pause:hover {
+        background: #475569;
+        transform: translateY(-1px);
+    }
+    
+    .btn-resume {
+        background: #1a73e8;
+        color: white;
+    }
+    
+    .btn-resume:hover {
+        background: #1557b0;
+        transform: translateY(-1px);
+    }
+    
+    .speed-control {
+        padding: 10px 16px;
+        background: white;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        border-top: 1px solid #e5e7eb;
+    }
+    
+    .speed-control label {
+        font-size: 11px;
+        font-weight: 600;
+        color: #64748b;
+    }
+    
+    .speed-slider {
+        flex: 1;
+        max-width: 150px;
+        height: 4px;
+        -webkit-appearance: none;
+        background: #e5e7eb;
+        border-radius: 5px;
+        outline: none;
+    }
+    
+    .speed-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #8b5cf6;
+        cursor: pointer;
+    }
+    
+    .speed-value {
+        font-size: 13px;
+        font-weight: 700;
+        color: #8b5cf6;
+        min-width: 50px;
+    }
+    
+    .eta-info {
+        font-size: 10px;
+        color: #64748b;
+        margin-top: 8px;
+        padding: 5px 8px;
+        background: #fef3c7;
+        border-radius: 6px;
+        display: none;
+    }
+    
+    .eta-info.show {
+        display: block;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        background: white;
+        border-radius: 16px;
+        grid-column: 1 / -1;
+    }
+    
+    .empty-state .icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
+    
+    .empty-state h3 {
+        color: #1e293b;
+        margin-bottom: 10px;
+    }
+    
+    .empty-state p {
+        color: #64748b;
+    }
+    
+    .refresh-btn {
+        background: #8b5cf6;
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .refresh-btn:hover {
+        background: #7c3aed;
+        transform: translateY(-1px);
+    }
+    
+    @media (max-width: 768px) {
+        .bus-grid {
+            grid-template-columns: 1fr;
+        }
+        .map-container {
+            height: 280px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block sidebar_nav %}
+<div class="nav-label">Main Menu</div>
+<a href="/depot-manager/dashboard">📊 Dashboard</a>
+
+<div class="nav-label" style="margin-top: 20px;">Route Management</div>
+<a href="/depot-manager/routes">🗺️ Manage Routes</a>
+
+<div class="nav-label" style="margin-top: 20px;">Vehicle Management</div>
+<a href="/depot-manager/vehicles">🚍 Manage Vehicles</a>
+<a href="/depot-manager/assign-vehicles">🚛 Assign Vehicles</a>
+
+<div class="nav-label" style="margin-top: 20px;">Schedule Management</div>
+<a href="/depot-manager/schedules">📅 Manage Schedules</a>
+<a href="/depot-manager/assign-drivers">👨‍✈️ Assign Drivers</a>
+
+<div class="nav-label" style="margin-top: 20px;">Operations</div>
+<a href="/depot-manager/fuel-logs">⛽ Fuel Logs</a>
+<a href="/depot-manager/maintenance">🔧 Maintenance</a>
+
+<div class="nav-label" style="margin-top: 20px;">Live Tracking</div>
+<a href="/depot-manager/live-tracking" class="active">📍 Live Bus Tracking</a>
+
+<div class="nav-label" style="margin-top: 20px;">Account</div>
+<a href="/profile">👤 My Profile</a>
+<a href="/notifications">🔔 Notifications</a>
+{% endblock %}
+
+{% block page_title %}Live Bus Tracking{% endblock %}
+
+{% block content %}
+<div class="live-tracking-header">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <h2>📍 Live Bus Tracking</h2>
+            <p style="opacity: 0.9; margin-top: 5px;">Track each bus individually on its own route map</p>
+        </div>
+        <button class="refresh-btn" onclick="refreshAllBuses()">🔄 Refresh All</button>
+    </div>
+</div>
+
+<div class="stats-summary" id="statsSummary">
+    <div class="stat-summary-card">
+        <div class="number" id="totalBuses">0</div>
+        <div class="label">Total Buses</div>
+    </div>
+    <div class="stat-summary-card">
+        <div class="number" id="liveBuses">0</div>
+        <div class="label">Live Buses</div>
+    </div>
+    <div class="stat-summary-card">
+        <div class="number" id="waitingBuses">0</div>
+        <div class="label">Waiting</div>
+    </div>
+    <div class="stat-summary-card">
+        <div class="number" id="completedBuses">0</div>
+        <div class="label">Completed</div>
+    </div>
+</div>
+
+<div id="busesContainer" class="bus-grid">
+    <div class="empty-state">
+        <div class="icon">🚌</div>
+        <h3>Loading buses...</h3>
+        <p>Please wait while we fetch live bus data</p>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // ============================================
+    // SRI LANKA CITY COORDINATES DATABASE
+    // ============================================
+    var cityCoordinates = {
+        'Colombo': [6.9271, 79.8612], 'Kandy': [7.2906, 80.6337], 'Galle': [6.0328, 80.2168],
+        'Matara': [5.9491, 80.5439], 'Jaffna': [9.6615, 80.0255], 'Kataragama': [6.4167, 81.3333],
+        'Katharagama': [6.4167, 81.3333], 'Hambantota': [6.1241, 81.1196], 'Anuradhapura': [8.3114, 80.4037],
+        'Vavuniya': [8.7500, 80.5000], 'Trincomalee': [8.5774, 81.2128], 'Batticaloa': [7.7173, 81.7005],
+        'Ratnapura': [6.7055, 80.3843], 'Badulla': [6.9931, 81.0553], 'Nuwara Eliya': [6.9497, 80.7891],
+        'Kurunegala': [7.4863, 80.3623], 'Negombo': [7.2092, 79.8357], 'Ella': [6.8667, 81.05],
+        'Dikwalla': [5.92, 80.62], 'Thangalla': [6.05, 80.8], 'Kalutara': [6.5833, 79.9667],
+        'Bentota': [6.4167, 80.0], 'Ambalangoda': [6.2333, 80.0667], 'Hikkaduwa': [6.1333, 80.1],
+        'Weligama': [5.9667, 80.4333], 'Mirissa': [5.95, 80.4667], 'Gampaha': [7.0833, 80.0],
+        'Warakapola': [7.2167, 80.2], 'Mawanella': [7.25, 80.45], 'Peradeniya': [7.2667, 80.6],
+        'Katugastota': [7.3167, 80.6167], 'Matale': [7.4667, 80.6167], 'Dambulla': [7.8667, 80.65],
+        'Habarana': [8.0333, 80.75], 'Mihintale': [8.35, 80.5], 'Puttalam': [8.0333, 79.8333]
+    };
+
+    // ============================================
+    // ROUTE PATHS DATABASE
+    // ============================================
+    var routePaths = {
+        'Matara - Galle': [[5.9491,80.5439], [5.97,80.53], [5.99,80.48], [6.01,80.43], [6.03,80.38], [6.04,80.33], [6.03,80.28], [6.02,80.24], [6.0328,80.2168]],
+        'Colombo - Kandy': [[6.9271,79.8612], [6.96,79.89], [7.01,79.93], [7.06,79.97], [7.11,80.01], [7.16,80.06], [7.22,80.11], [7.28,80.17], [7.33,80.23], [7.38,80.29], [7.42,80.35], [7.45,80.41], [7.44,80.47], [7.41,80.53], [7.37,80.59], [7.33,80.63], [7.2906,80.6337]],
+        'Colombo - Galle': [[6.9271,79.8612], [6.89,79.88], [6.85,79.89], [6.81,79.91], [6.77,79.93], [6.73,79.95], [6.69,79.97], [6.65,80.00], [6.61,80.03], [6.57,80.06], [6.53,80.10], [6.49,80.14], [6.45,80.18], [6.41,80.22], [6.37,80.26], [6.33,80.30], [6.29,80.34], [6.25,80.38], [6.21,80.42], [6.17,80.46], [6.13,80.50], [6.09,80.54], [6.05,80.58], [6.0328,80.2168]],
+        'Kandy - Nuwara Eliya': [[7.2906,80.6337], [7.27,80.65], [7.24,80.67], [7.20,80.69], [7.16,80.71], [7.12,80.73], [7.08,80.75], [7.04,80.77], [7.00,80.78], [6.96,80.79], [6.9497,80.7891]],
+        'Kataragama - Jaffna': [[6.4167,81.3333], [6.50,81.35], [6.60,81.38], [6.70,81.42], [6.80,81.45], [6.90,81.48], [7.00,81.50], [7.10,81.48], [7.20,81.45], [7.30,81.42], [7.40,81.38], [7.50,81.35], [7.60,81.30], [7.70,81.25], [7.80,81.20], [7.90,81.15], [8.00,81.10], [8.10,81.05], [8.20,81.00], [8.30,80.95], [8.3114,80.4037], [8.40,80.45], [8.50,80.48], [8.60,80.50], [8.70,80.52], [8.80,80.54], [8.90,80.56], [9.00,80.55], [9.10,80.52], [9.20,80.48], [9.30,80.44], [9.40,80.40], [9.50,80.36], [9.60,80.32], [9.6615,80.0255]],
+        'Hambantota - Matara': [[6.1241,81.1196], [6.10,81.09], [6.08,81.05], [6.06,81.00], [6.04,80.95], [6.02,80.90], [6.00,80.85], [5.98,80.80], [5.96,80.75], [5.94,80.70], [5.93,80.65], [5.92,80.60], [5.93,80.55], [5.9491,80.5439]],
+        'Badulla - Ella': [[6.9931,81.0553], [6.97,81.05], [6.95,81.05], [6.92,81.05], [6.90,81.05], [6.88,81.05], [6.8667,81.05]],
+        'Negombo - Kurunegala': [[7.2092,79.8357], [7.24,79.87], [7.27,79.91], [7.30,79.95], [7.33,79.99], [7.36,80.04], [7.39,80.09], [7.42,80.14], [7.45,80.19], [7.47,80.24], [7.49,80.29], [7.4863,80.3623]],
+        'Matara - Thangalla': [[5.9491,80.5439], [5.96,80.58], [5.98,80.63], [6.00,80.68], [6.02,80.73], [6.04,80.78], [6.05,80.80]],
+        'Matara - Dikwalla': [[5.9491,80.5439], [5.94,80.56], [5.93,80.59], [5.92,80.62], [5.92,80.65]],
+        'Galle - Matara': [[6.0328,80.2168], [6.02,80.24], [6.01,80.28], [6.00,80.32], [5.99,80.36], [5.98,80.40], [5.97,80.44], [5.96,80.48], [5.95,80.52], [5.9491,80.5439]],
+        'Kandy - Colombo': [[7.2906,80.6337], [7.33,80.63], [7.37,80.59], [7.41,80.53], [7.44,80.47], [7.45,80.41], [7.42,80.35], [7.38,80.29], [7.33,80.23], [7.28,80.17], [7.22,80.11], [7.16,80.06], [7.11,80.01], [7.06,79.97], [7.01,79.93], [6.96,79.89], [6.9271,79.8612]]
+    };
+
+    function getCoordinates(cityName) {
+        for (var key in cityCoordinates) {
+            if (cityName.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(cityName.toLowerCase())) {
+                return cityCoordinates[key];
+            }
+        }
+        return [7.8731, 80.7718];
+    }
+
+    function getRoutePath(startPoint, endPoint, routeName) {
+        if (routePaths[routeName]) return routePaths[routeName];
+        var combined = startPoint + ' - ' + endPoint;
+        if (routePaths[combined]) return routePaths[combined];
+        var reverseCombined = endPoint + ' - ' + startPoint;
+        if (routePaths[reverseCombined]) return routePaths[reverseCombined];
+        
+        var start = getCoordinates(startPoint);
+        var end = getCoordinates(endPoint);
+        var points = [start];
+        var steps = 20;
+        for (var i = 1; i <= steps; i++) {
+            var t = i / steps;
+            points.push([start[0] + (end[0] - start[0]) * t, start[1] + (end[1] - start[1]) * t]);
+        }
+        return points;
+    }
+
+    // Bus tracking data storage
+    var busTrackers = {};
+    var refreshInterval = null;
+    var currentBuses = [];
+
+    // Sample buses for demonstration
+    var sampleBuses = [
+        {
+            id: 1,
+            driver_name: 'Rishu Kumar',
+            route_name: 'Colombo - Kandy Express',
+            from: 'Colombo',
+            to: 'Kandy',
+            vehicle_code: 'BUS-001',
+            registration: 'WP-1234',
+            status: 'live',
+            latitude: 6.9271,
+            longitude: 79.8612,
+            speed: 65,
+            heading: 'NE'
+        },
+        {
+            id: 2,
+            driver_name: 'Sewwandi Mahadurage',
+            route_name: 'Colombo - Galle Coastal',
+            from: 'Colombo',
+            to: 'Galle',
+            vehicle_code: 'BUS-002',
+            registration: 'WP-5678',
+            status: 'live',
+            latitude: 6.85,
+            longitude: 79.89,
+            speed: 55,
+            heading: 'S'
+        },
+        {
+            id: 3,
+            driver_name: 'Danushka Rathnayaka',
+            route_name: 'Kandy - Nuwara Eliya',
+            from: 'Kandy',
+            to: 'Nuwara Eliya',
+            vehicle_code: 'BUS-003',
+            registration: 'CP-9012',
+            status: 'live',
+            latitude: 7.2906,
+            longitude: 80.6337,
+            speed: 45,
+            heading: 'SE'
+        },
+        {
+            id: 4,
+            driver_name: 'Kamal Perera',
+            route_name: 'Galle - Matara Local',
+            from: 'Galle',
+            to: 'Matara',
+            vehicle_code: 'BUS-004',
+            registration: 'SP-3456',
+            status: 'waiting',
+            latitude: 6.0328,
+            longitude: 80.2168,
+            speed: 0,
+            heading: 'E'
+        },
+        {
+            id: 5,
+            driver_name: 'Nimal Silva',
+            route_name: 'Kataragama - Jaffna',
+            from: 'Kataragama',
+            to: 'Jaffna',
+            vehicle_code: 'BUS-005',
+            registration: 'GP-7890',
+            status: 'live',
+            latitude: 8.3114,
+            longitude: 80.4037,
+            speed: 70,
+            heading: 'N'
+        },
+        {
+            id: 6,
+            driver_name: 'Bagya Rishani',
+            route_name: 'Negombo - Kurunegala',
+            from: 'Negombo',
+            to: 'Kurunegala',
+            vehicle_code: 'BUS-006',
+            registration: 'WP-9999',
+            status: 'waiting',
+            latitude: 7.2092,
+            longitude: 79.8357,
+            speed: 0,
+            heading: 'NE'
+        },
+        {
+            id: 7,
+            driver_name: 'Nuwan Pradeep',
+            route_name: 'Hambantota - Matara',
+            from: 'Hambantota',
+            to: 'Matara',
+            vehicle_code: 'BUS-007',
+            registration: 'HB-1234',
+            status: 'live',
+            latitude: 6.1241,
+            longitude: 81.1196,
+            speed: 60,
+            heading: 'SW'
+        },
+        {
+            id: 8,
+            driver_name: 'Lahiru Sandaruwan',
+            route_name: 'Badulla - Ella',
+            from: 'Badulla',
+            to: 'Ella',
+            vehicle_code: 'BUS-008',
+            registration: 'BD-5678',
+            status: 'live',
+            latitude: 6.9931,
+            longitude: 81.0553,
+            speed: 40,
+            heading: 'SE'
+        }
+    ];
+
+    function getBusIcon(heading, isLive) {
+        var rotation = '';
+        if (heading === 'N') rotation = 'transform: rotate(0deg);';
+        else if (heading === 'NE') rotation = 'transform: rotate(45deg);';
+        else if (heading === 'E') rotation = 'transform: rotate(90deg);';
+        else if (heading === 'SE') rotation = 'transform: rotate(135deg);';
+        else if (heading === 'S') rotation = 'transform: rotate(180deg);';
+        else if (heading === 'SW') rotation = 'transform: rotate(225deg);';
+        else if (heading === 'W') rotation = 'transform: rotate(270deg);';
+        else if (heading === 'NW') rotation = 'transform: rotate(315deg);';
+        
+        var borderColor = isLive ? '#16a34a' : '#d97706';
+        var animation = isLive ? 'animation: pulse 2s infinite;' : '';
+        
+        return L.divIcon({
+            html: '<div style="font-size: 30px; background: white; border-radius: 50%; padding: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); border: 3px solid ' + borderColor + '; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; ' + rotation + ' ' + animation + '">🚌</div>',
+            className: 'bus-icon',
+            iconSize: [46, 46],
+            iconAnchor: [23, 23],
+            popupAnchor: [0, -23]
+        });
+    }
+
+    function createBusCardHTML(bus) {
+        var statusClass = bus.status === 'live' ? 'status-live' : (bus.status === 'waiting' ? 'status-waiting' : 'status-completed');
+        var statusText = bus.status === 'live' ? '● LIVE' : (bus.status === 'waiting' ? '⏳ Waiting' : '✓ Completed');
+        
+        return `
+        <div class="bus-tracking-card" data-bus-id="${bus.id}">
+            <div class="bus-card-header">
+                <div class="bus-title">
+                    <span class="bus-icon">🚌</span>
+                    <span>${bus.route_name}</span>
+                </div>
+                <div>
+                    <span class="bus-status ${statusClass}">${statusText}</span>
+                </div>
+            </div>
+            <div class="bus-info-panel">
+                <div class="info-item">
+                    <span class="info-label">Driver</span>
+                    <span class="info-value">${bus.driver_name}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Vehicle</span>
+                    <span class="info-value">${bus.vehicle_code} (${bus.registration})</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Route</span>
+                    <span class="info-value">${bus.from} → ${bus.to}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Current Speed</span>
+                    <span class="info-value" id="speed-${bus.id}">${bus.speed} km/h</span>
+                </div>
+            </div>
+            <div class="map-container">
+                <div id="map-${bus.id}" class="bus-map"></div>
+            </div>
+            <div class="progress-section">
+                <div class="progress-label">
+                    <span>📍 Journey Progress</span>
+                    <span id="progress-percent-${bus.id}">0%</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-fill" id="progress-fill-${bus.id}"></div>
+                </div>
+                <div class="progress-label" style="margin-top: 8px;">
+                    <span>🚩 ${bus.from}</span>
+                    <span>🏁 ${bus.to}</span>
+                </div>
+                <div class="eta-info" id="eta-${bus.id}"></div>
+            </div>
+            <div class="bus-controls">
+                <button class="btn-control btn-start" onclick="startBus(${bus.id})">▶ Start</button>
+                <button class="btn-control btn-reset" onclick="resetBus(${bus.id})">🔄 Reset</button>
+                <button class="btn-control btn-pause" onclick="pauseBus(${bus.id})">⏸ Pause</button>
+                <button class="btn-control btn-resume" onclick="resumeBus(${bus.id})">▶ Resume</button>
+            </div>
+            <div class="speed-control">
+                <label>⚡ Speed:</label>
+                <input type="range" class="speed-slider" id="speed-slider-${bus.id}" min="20" max="120" value="${bus.speed || 60}" step="5" onchange="updateBusSpeed(${bus.id}, this.value)">
+                <span class="speed-value" id="speed-value-${bus.id}">${bus.speed || 60} km/h</span>
+            </div>
+        </div>
+        `;
+    }
+
+    function initBusMap(bus) {
+        var mapContainer = document.getElementById(`map-${bus.id}`);
+        if (!mapContainer) return;
+        
+        var routePoints = getRoutePath(bus.from, bus.to, bus.routeName);
+        var startCoords = getCoordinates(bus.from);
+        var endCoords = getCoordinates(bus.to);
+        
+        var bounds = L.latLngBounds(routePoints);
+        var map = L.map(`map-${bus.id}`).fitBounds(bounds, { padding: [30, 30] });
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+        
+        // Draw route line
+        L.polyline(routePoints, {
+            color: '#1a73e8',
+            weight: 4,
+            opacity: 0.8,
+            dashArray: '5, 10'
+        }).addTo(map);
+        
+        // Start marker
+        var startIcon = L.divIcon({
+            html: '<div style="font-size: 28px;">🚩</div>',
+            iconSize: [28, 28],
+            iconAnchor: [14, 28]
+        });
+        L.marker(startCoords, { icon: startIcon })
+            .bindPopup('<b>🚩 START</b><br>' + bus.from)
+            .addTo(map);
+        
+        // End marker
+        var endIcon = L.divIcon({
+            html: '<div style="font-size: 28px;">🏁</div>',
+            iconSize: [28, 28],
+            iconAnchor: [14, 28]
+        });
+        L.marker(endCoords, { icon: endIcon })
+            .bindPopup('<b>🏁 END</b><br>' + bus.to)
+            .addTo(map);
+        
+        // Bus marker
+        var isLive = bus.status === 'live';
+        var busIcon = getBusIcon(bus.heading, isLive);
+        var busMarker = L.marker([bus.latitude, bus.longitude], { icon: busIcon })
+            .bindPopup(`
+                <b>🚌 ${bus.route_name}</b><br>
+                Driver: ${bus.driver_name}<br>
+                Speed: ${bus.speed} km/h<br>
+                ${bus.from} → ${bus.to}
+            `)
+            .addTo(map);
+        
+        // Calculate initial step based on position
+        var currentStep = findClosestStep(routePoints, [bus.latitude, bus.longitude]);
+        
+        busTrackers[bus.id] = {
+            map: map,
+            busMarker: busMarker,
+            routePoints: routePoints,
+            totalSteps: routePoints.length - 1,
+            currentStep: currentStep,
+            animationInterval: null,
+            speed: bus.speed || 60,
+            isAnimating: false,
+            from: bus.from,
+            to: bus.to,
+            routeName: bus.routeName,
+            driverName: bus.driver_name,
+            vehicleCode: bus.vehicle_code
+        };
+        
+        updateBusProgress(bus.id);
+    }
+    
+    function findClosestStep(routePoints, position) {
+        var minDist = Infinity;
+        var closestStep = 0;
+        for (var i = 0; i < routePoints.length; i++) {
+            var dist = Math.pow(routePoints[i][0] - position[0], 2) + Math.pow(routePoints[i][1] - position[1], 2);
+            if (dist < minDist) {
+                minDist = dist;
+                closestStep = i;
+            }
+        }
+        return closestStep;
+    }
+    
+    function updateBusProgress(busId) {
+        var tracker = busTrackers[busId];
+        if (!tracker) return;
+        
+        var progress = (tracker.currentStep / tracker.totalSteps) * 100;
+        var fillEl = document.getElementById(`progress-fill-${busId}`);
+        var percentEl = document.getElementById(`progress-percent-${busId}`);
+        
+        if (fillEl) fillEl.style.width = progress + '%';
+        if (percentEl) percentEl.textContent = Math.floor(progress) + '%';
+        
+        var etaInfo = document.getElementById(`eta-${busId}`);
+        if (etaInfo && tracker.isAnimating && tracker.currentStep < tracker.totalSteps) {
+            var remainingSteps = tracker.totalSteps - tracker.currentStep;
+            var secondsPerStep = (1000 / (tracker.speed / 8)) / 1000;
+            var etaSeconds = remainingSteps * secondsPerStep;
+            if (etaSeconds > 0 && etaSeconds < 3600) {
+                etaInfo.innerHTML = '⏱️ ETA: ' + Math.floor(etaSeconds / 60) + ' min ' + Math.floor(etaSeconds % 60) + ' sec';
+                etaInfo.classList.add('show');
+            }
+        } else if (etaInfo && tracker.currentStep >= tracker.totalSteps) {
+            etaInfo.innerHTML = '✅ Journey completed!';
+            etaInfo.classList.add('show');
+        } else if (etaInfo) {
+            etaInfo.classList.remove('show');
+        }
+        
+        // Update status based on progress
+        if (tracker.currentStep >= tracker.totalSteps) {
+            var statusBadge = document.querySelector(`.bus-tracking-card[data-bus-id="${busId}"] .bus-status`);
+            if (statusBadge) {
+                statusBadge.textContent = '✓ Completed';
+                statusBadge.className = 'bus-status status-completed';
+            }
+        }
+    }
+    
+    function startBus(busId) {
+        var tracker = busTrackers[busId];
+        if (!tracker || tracker.isAnimating) return;
+        
+        if (tracker.currentStep >= tracker.totalSteps) {
+            resetBus(busId);
+        }
+        
+        tracker.isAnimating = true;
+        var stepsPerSecond = Math.max(2, Math.min(12, Math.floor(tracker.speed / 10)));
+        var intervalTime = 1000 / stepsPerSecond;
+        
+        tracker.animationInterval = setInterval(function() {
+            if (tracker.currentStep < tracker.totalSteps) {
+                tracker.currentStep++;
+                var newPos = tracker.routePoints[tracker.currentStep];
+                tracker.busMarker.setLatLng(newPos);
+                tracker.map.panTo(newPos);
+                updateBusProgress(busId);
+                
+                var speedEl = document.getElementById(`speed-${busId}`);
+                if (speedEl) speedEl.textContent = tracker.speed + ' km/h';
+                
+                // Update status to live
+                if (tracker.currentStep > 0) {
+                    var statusBadge = document.querySelector(`.bus-tracking-card[data-bus-id="${busId}"] .bus-status`);
+                    if (statusBadge && statusBadge.textContent !== '● LIVE') {
+                        statusBadge.textContent = '● LIVE';
+                        statusBadge.className = 'bus-status status-live';
+                    }
+                }
+            } else {
+                pauseBus(busId);
+                updateBusProgress(busId);
+                alert(`✅ Bus ${tracker.vehicleCode} has arrived at ${tracker.to}!`);
+            }
+        }, intervalTime);
+    }
+    
+    function pauseBus(busId) {
+        var tracker = busTrackers[busId];
+        if (tracker && tracker.animationInterval) {
+            clearInterval(tracker.animationInterval);
+            tracker.animationInterval = null;
+            tracker.isAnimating = false;
+        }
+    }
+    
+    function resumeBus(busId) {
+        var tracker = busTrackers[busId];
+        if (tracker && !tracker.isAnimating && tracker.currentStep < tracker.totalSteps) {
+            startBus(busId);
+        }
+    }
+    
+    function resetBus(busId) {
+        var tracker = busTrackers[busId];
+        if (tracker) {
+            pauseBus(busId);
+            tracker.currentStep = 0;
+            tracker.busMarker.setLatLng(tracker.routePoints[0]);
+            updateBusProgress(busId);
+            tracker.map.setView(tracker.routePoints[0], 10);
+            
+            var speedEl = document.getElementById(`speed-${busId}`);
+            if (speedEl) speedEl.textContent = tracker.speed + ' km/h';
+            
+            var statusBadge = document.querySelector(`.bus-tracking-card[data-bus-id="${busId}"] .bus-status`);
+            if (statusBadge) {
+                statusBadge.textContent = '⏳ Waiting';
+                statusBadge.className = 'bus-status status-waiting';
+            }
+        }
+    }
+    
+    function updateBusSpeed(busId, speed) {
+        var tracker = busTrackers[busId];
+        if (tracker) {
+            tracker.speed = parseInt(speed);
+            var speedValueSpan = document.getElementById(`speed-value-${busId}`);
+            if (speedValueSpan) speedValueSpan.textContent = tracker.speed + ' km/h';
+            
+            if (tracker.isAnimating) {
+                pauseBus(busId);
+                startBus(busId);
+            }
+        }
+    }
+    
+    function updateStatsSummary(buses) {
+        var total = buses.length;
+        var live = buses.filter(function(b) { return b.status === 'live'; }).length;
+        var waiting = buses.filter(function(b) { return b.status === 'waiting'; }).length;
+        var completed = buses.filter(function(b) { return b.status === 'completed'; }).length;
+        
+        document.getElementById('totalBuses').textContent = total;
+        document.getElementById('liveBuses').textContent = live;
+        document.getElementById('waitingBuses').textContent = waiting;
+        document.getElementById('completedBuses').textContent = completed;
+    }
+    
+    async function loadBuses() {
+        try {
+            var response = await fetch('/api/active-buses');
+            var data = await response.json();
+            
+            var buses = [];
+            if (data.success && data.buses && data.buses.length > 0) {
+                buses = data.buses.map(function(b) {
+                    return {
+                        id: b.driver_id,
+                        driver_name: b.driver_name,
+                        route_name: b.route_name,
+                        from: b.from,
+                        to: b.to,
+                        vehicle_code: b.vehicle,
+                        registration: b.vehicle,
+                        status: 'live',
+                        latitude: b.latitude,
+                        longitude: b.longitude,
+                        speed: b.speed,
+                        heading: b.heading
+                    };
+                });
+            } else {
+                buses = sampleBuses;
+            }
+            
+            currentBuses = buses;
+            updateStatsSummary(buses);
+            renderBuses(buses);
+        } catch (err) {
+            console.error('Error loading buses:', err);
+            currentBuses = sampleBuses;
+            updateStatsSummary(sampleBuses);
+            renderBuses(sampleBuses);
+        }
+    }
+    
+    function renderBuses(buses) {
+        var container = document.getElementById('busesContainer');
+        if (!buses || buses.length === 0) {
+            container.innerHTML = `
+            <div class="empty-state">
+                <div class="icon">🚌</div>
+                <h3>No Active Buses</h3>
+                <p>There are no buses currently on the road. When drivers start their routes, they will appear here.</p>
+            </div>`;
+            return;
+        }
+        
+        var html = '';
+        for (var i = 0; i < buses.length; i++) {
+            html += createBusCardHTML(buses[i]);
+        }
+        container.innerHTML = html;
+        
+        setTimeout(function() {
+            for (var i = 0; i < buses.length; i++) {
+                initBusMap(buses[i]);
+            }
+        }, 100);
+    }
+    
+    function refreshAllBuses() {
+        loadBuses();
+    }
+    
+    // Clean up intervals on page unload
+    window.addEventListener('beforeunload', function() {
+        if (refreshInterval) clearInterval(refreshInterval);
+        for (var id in busTrackers) {
+            if (busTrackers[id] && busTrackers[id].animationInterval) {
+                clearInterval(busTrackers[id].animationInterval);
+            }
+        }
+    });
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        loadBuses();
+        refreshInterval = setInterval(loadBuses, 15000);
+    });
+    
+    // Make functions global for onclick handlers
+    window.startBus = startBus;
+    window.pauseBus = pauseBus;
+    window.resumeBus = resumeBus;
+    window.resetBus = resetBus;
+    window.updateBusSpeed = updateBusSpeed;
+    window.refreshAllBuses = refreshAllBuses;
+</script>
+{% endblock %}

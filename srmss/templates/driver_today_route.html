@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Today's Route - SRMSS Driver</title>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --dark: #1e293b;
+            --gray: #64748b;
+            --border: #e5e7eb;
+            --danger: #ef4444;
+            --success: #16a34a;
+            --warning: #d97706;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #f1f5f9;
+            min-height: 100vh;
+            display: flex;
+            padding-bottom: 60px;
+        }
+        
+        .sidebar {
+            width: 260px; background: var(--dark); color: #cbd5e1;
+            min-height: 100vh; position: fixed; left: 0; top: 0; bottom: 0;
+            z-index: 100; display: flex; flex-direction: column;
+        }
+        
+        .sidebar-brand {
+            padding: 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; gap: 12px;
+        }
+        
+        .sidebar-brand .icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, #16a34a, #22c55e);
+            border-radius: 10px; display: flex; align-items: center;
+            justify-content: center; font-size: 20px;
+        }
+        
+        .sidebar-brand h3 { font-size: 16px; font-weight: 700; color: white; }
+        .sidebar-brand span { font-size: 11px; color: #4ade80; display: block; font-weight: 600; }
+        
+        .sidebar-nav { flex: 1; padding: 20px 15px; overflow-y: auto; }
+        
+        .sidebar-nav .nav-label {
+            font-size: 10px; text-transform: uppercase; letter-spacing: 2px;
+            color: #64748b; margin-bottom: 10px; padding: 0 10px; font-weight: 700;
+        }
+        
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 15px; color: #94a3b8; text-decoration: none;
+            border-radius: 8px; font-size: 14px; font-weight: 500;
+            transition: all 0.2s; margin-bottom: 2px;
+        }
+        
+        .sidebar-nav a:hover { background: rgba(255,255,255,0.05); color: white; }
+        .sidebar-nav a.active { background: rgba(34,197,94,0.15); color: #4ade80; font-weight: 600; }
+        
+        .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+        
+        .user-info { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        
+        .user-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: linear-gradient(135deg, #16a34a, #22c55e);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 14px; color: white;
+        }
+        
+        .user-details { flex: 1; }
+        .user-details .name { font-weight: 600; font-size: 13px; color: white; }
+        .user-details .role { font-size: 11px; color: #4ade80; font-weight: 600; }
+        
+        .btn-logout {
+            display: block; width: 100%; padding: 8px;
+            background: rgba(239,68,68,0.1); color: #ef4444;
+            border: 1px solid rgba(239,68,68,0.3); border-radius: 6px;
+            text-align: center; text-decoration: none;
+            font-size: 13px; font-weight: 500; transition: all 0.2s;
+        }
+        .btn-logout:hover { background: rgba(239,68,68,0.2); }
+        
+        .main-content { margin-left: 260px; flex: 1; }
+        
+        .top-bar {
+            background: white; padding: 16px 30px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 50;
+        }
+        
+        .top-bar h2 { font-size: 20px; font-weight: 700; color: var(--dark); }
+        
+        .content-area { padding: 30px; }
+        
+        .flash-message {
+            padding: 12px 15px; border-radius: 8px; margin-bottom: 20px;
+            font-size: 14px; font-weight: 500;
+        }
+        .flash-success { background: #d4edda; color: #155724; }
+        .flash-error { background: #f8d7da; color: #721c24; }
+        
+        .card {
+            background: white; border-radius: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 25px; overflow: hidden;
+        }
+        
+        .card-header {
+            padding: 18px 24px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .card-header h3 { font-size: 16px; font-weight: 700; color: var(--dark); }
+        .card-body { padding: 24px; }
+        .card-body.no-padding { padding: 0; }
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+        
+        .route-highlight {
+            background: linear-gradient(135deg, #1a73e8, #4dabf7);
+            color: white; padding: 30px; border-radius: 14px; margin-bottom: 30px;
+        }
+        
+        .route-highlight h2 { font-size: 28px; margin-bottom: 5px; }
+        .route-highlight .route-path { font-size: 20px; opacity: 0.9; margin-bottom: 15px; }
+        
+        .info-row {
+            display: flex; justify-content: space-between;
+            padding: 12px 0; border-bottom: 1px solid var(--border);
+        }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { color: var(--gray); font-size: 13px; }
+        .info-value { font-weight: 600; font-size: 14px; color: var(--dark); }
+        
+        table { width: 100%; border-collapse: collapse; }
+        
+        th {
+            background: #f8fafc; padding: 12px 16px; text-align: left;
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.5px; color: var(--gray); border-bottom: 2px solid var(--border);
+        }
+        
+        td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--dark); }
+        tr:hover { background: #f8fafc; }
+        
+        .badge {
+            padding: 4px 12px; border-radius: 20px;
+            font-size: 11px; font-weight: 700; display: inline-block;
+        }
+        .badge-success { background: #dcfce7; color: #166534; }
+        .badge-info { background: #dbeafe; color: #1e40af; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        
+        .stop-list { list-style: none; padding: 0; }
+        
+        .stop-item {
+            display: flex; align-items: center; gap: 15px;
+            padding: 15px 0; border-bottom: 1px solid var(--border);
+        }
+        .stop-item:last-child { border-bottom: none; }
+        
+        .stop-dot {
+            width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+        }
+        .stop-dot.start { background: #16a34a; }
+        .stop-dot.middle { background: #1a73e8; }
+        .stop-dot.end { background: #ef4444; }
+        
+        /* Tracking Bar */
+        .tracking-bar {
+            position: fixed; bottom: 0; left: 260px; right: 0;
+            background: white; padding: 12px 25px;
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 -2px 15px rgba(0,0,0,0.1); z-index: 1000;
+            border-top: 3px solid #e5e7eb;
+        }
+        
+        .tracking-bar.active { border-top-color: #16a34a; }
+        
+        .tracking-indicator {
+            display: flex; align-items: center; gap: 12px;
+        }
+        
+        .tracking-dot {
+            width: 14px; height: 14px; border-radius: 50%;
+            background: #ef4444; transition: all 0.3s;
+        }
+        
+        .tracking-dot.live {
+            background: #16a34a;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(22,163,74,0.4); }
+            50% { opacity: 0.6; box-shadow: 0 0 0 10px rgba(22,163,74,0); }
+        }
+        
+        .tracking-text .status { font-weight: 600; font-size: 14px; color: var(--dark); }
+        .tracking-text .coords { font-size: 12px; color: var(--gray); }
+        
+        .tracking-info {
+            display: flex; gap: 25px; align-items: center;
+        }
+        
+        .tracking-info .item {
+            text-align: center;
+        }
+        
+        .tracking-info .item .label {
+            font-size: 10px; color: var(--gray); text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .tracking-info .item .value {
+            font-size: 16px; font-weight: 700; color: var(--dark);
+        }
+        
+        .btn-track {
+            padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 600;
+            border: none; cursor: pointer; transition: all 0.2s;
+        }
+        
+        .btn-track.start { background: #16a34a; color: white; }
+        .btn-track.start:hover { background: #15803d; }
+        .btn-track.stop { background: #ef4444; color: white; }
+        .btn-track.stop:hover { background: #dc2626; }
+        
+        @media (max-width: 768px) {
+            .sidebar { width: 70px; }
+            .sidebar-brand h3, .sidebar-brand span,
+            .sidebar-nav a span, .sidebar-nav .nav-label,
+            .user-details { display: none; }
+            .sidebar-nav a { justify-content: center; padding: 12px; }
+            .main-content { margin-left: 70px; }
+            .grid-2 { grid-template-columns: 1fr; }
+            .tracking-bar { left: 70px; flex-direction: column; gap: 10px; padding: 10px 15px; }
+            .tracking-info { gap: 15px; }
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <div class="icon">🚌</div>
+            <div>
+                <h3>SRMSS</h3>
+                <span>Driver Portal</span>
+            </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <div class="nav-label">Main Menu</div>
+            <a href="/driver/dashboard">📊 Dashboard</a>
+            <a href="/driver/schedule">📅 My Schedule</a>
+            <a href="/driver/today-route" class="active">🗺️ Today's Route</a>
+            <a href="/driver/fuel-log">⛽ Fuel Log</a>
+            <a href="/driver/reports">📋 Reports</a>
+            <a href="/driver/profile">👤 Profile</a>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">{{ session.get('first_name', 'D')[0] }}{{ session.get('last_name', 'U')[0] }}</div>
+                <div class="user-details">
+                    <div class="name">{{ session.get('first_name', 'Driver') }} {{ session.get('last_name', 'User') }}</div>
+                    <div class="role">Driver</div>
+                </div>
+            </div>
+            <a href="/logout" class="btn-logout">🚪 Logout</a>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="top-bar">
+            <h2>🗺️ Today's Route</h2>
+            <span style="color:var(--gray);">{{ now.strftime('%A, %B %d, %Y') }}</span>
+        </div>
+        
+        <div class="content-area">
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            {% if today_schedule %}
+            
+            <div class="route-highlight">
+                <h2>🚌 {{ today_schedule.route_name }}</h2>
+                <div class="route-path">{{ today_schedule.start_point }} → {{ today_schedule.end_point }}</div>
+                <div style="display: flex; gap: 30px; margin-top: 15px;">
+                    <div>
+                        <div style="font-size: 12px; opacity: 0.8;">DEPARTURE</div>
+                        <div style="font-size: 24px; font-weight: 700;">{{ today_schedule.departure_time }}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 12px; opacity: 0.8;">ARRIVAL</div>
+                        <div style="font-size: 24px; font-weight: 700;">{{ today_schedule.arrival_time }}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 12px; opacity: 0.8;">STATUS</div>
+                        <span class="badge badge-success" style="font-size:14px;">✅ Active</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header"><h3>📋 Route Details</h3></div>
+                    <div class="card-body">
+                        <div class="info-row">
+                            <span class="info-label">Route Type</span>
+                            <span class="info-value">{{ today_schedule.route_type|title }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Total Distance</span>
+                            <span class="info-value">{{ today_schedule.total_distance }} km</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Start Point</span>
+                            <span class="info-value">{{ today_schedule.start_point }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">End Point</span>
+                            <span class="info-value">{{ today_schedule.end_point }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Departure</span>
+                            <span class="info-value">{{ today_schedule.departure_time }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Arrival</span>
+                            <span class="info-value">{{ today_schedule.arrival_time }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Status</span>
+                            <span class="info-value">
+                                {% if today_schedule.status == 'completed' %}
+                                    <span class="badge badge-success">Completed</span>
+                                {% elif today_schedule.status == 'on_time' %}
+                                    <span class="badge badge-success">On Time</span>
+                                {% else %}
+                                    <span class="badge badge-info">Scheduled</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header"><h3>🚍 Vehicle Details</h3></div>
+                    <div class="card-body">
+                        <div class="info-row">
+                            <span class="info-label">Registration No</span>
+                            <span class="info-value">{{ today_schedule.registration_number }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Vehicle Code</span>
+                            <span class="info-value">{{ today_schedule.vehicle_code }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Type</span>
+                            <span class="info-value">{{ today_schedule.vehicle_type|title }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Seating Capacity</span>
+                            <span class="info-value">{{ today_schedule.seating_capacity }} seats</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Fuel Type</span>
+                            <span class="info-value">{{ today_schedule.fuel_type|title }}</span>
+                        </div>
+                        {% if vehicle_details %}
+                        <div class="info-row">
+                            <span class="info-label">Last Odometer</span>
+                            <span class="info-value">{{ vehicle_details.last_odometer or 'N/A' }} km</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Last Fuel</span>
+                            <span class="info-value">{{ vehicle_details.last_fuel or 'N/A' }} L</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            {% if today_schedule.intermediate_stops %}
+            <div class="card">
+                <div class="card-header"><h3>📍 Route Stops</h3></div>
+                <div class="card-body">
+                    <ul class="stop-list">
+                        <li class="stop-item">
+                            <span class="stop-dot start"></span>
+                            <div>
+                                <strong>{{ today_schedule.start_point }}</strong>
+                                <div style="color:var(--gray);font-size:12px;">Starting Point</div>
+                            </div>
+                        </li>
+                        {% for stop in today_schedule.intermediate_stops.split(',') %}
+                        <li class="stop-item">
+                            <span class="stop-dot middle"></span>
+                            <div>
+                                <strong>{{ stop.strip() }}</strong>
+                                <div style="color:var(--gray);font-size:12px;">Stop {{ loop.index }}</div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                        <li class="stop-item">
+                            <span class="stop-dot end"></span>
+                            <div>
+                                <strong>{{ today_schedule.end_point }}</strong>
+                                <div style="color:var(--gray);font-size:12px;">Destination</div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if all_today|length > 1 %}
+            <div class="card">
+                <div class="card-header"><h3>📅 All Today's Trips ({{ all_today|length }})</h3></div>
+                <div class="card-body no-padding">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th style="padding: 12px 16px;">Route</th>
+                                <th style="padding: 12px 16px;">Vehicle</th>
+                                <th style="padding: 12px 16px;">Departure</th>
+                                <th style="padding: 12px 16px;">Arrival</th>
+                                <th style="padding: 12px 16px;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for schedule in all_today %}
+                            <tr>
+                                <td style="padding: 12px 16px;"><strong>{{ schedule.route_name }}</strong></td>
+                                <td style="padding: 12px 16px;">{{ schedule.registration_number }}</span>
+                                <td style="padding: 12px 16px;">{{ schedule.departure_time }}</span>
+                                <td style="padding: 12px 16px;">{{ schedule.arrival_time }}</span>
+                                <td style="padding: 12px 16px;">
+                                    {% if schedule.status == 'completed' %}
+                                        <span class="badge badge-success">Completed</span>
+                                    {% elif schedule.status == 'delayed' %}
+                                        <span class="badge badge-warning">Delayed</span>
+                                    {% else %}
+                                        <span class="badge badge-info">Scheduled</span>
+                                    {% endif %}
+                                </span>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% else %}
+            <div style="text-align: center; padding: 80px 20px; background: white; border-radius: 14px;">
+                <div style="font-size: 64px; margin-bottom: 20px;">🗺️</div>
+                <h3 style="color: var(--dark); margin-bottom: 10px;">No Routes Today</h3>
+                <p style="color: var(--gray);">You have no scheduled routes for today. Enjoy your day off!</p>
+            </div>
+            {% endif %}
+            
+        </div>
+    </div>
+    
+    <!-- Tracking Bar -->
+    <div class="tracking-bar" id="trackingBar">
+        <div class="tracking-indicator">
+            <div class="tracking-dot" id="trackingDot"></div>
+            <div class="tracking-text">
+                <div class="status" id="trackingStatus">📍 Location Sharing: OFF</div>
+                <div class="coords" id="trackingCoords">Press Start to share your location</div>
+            </div>
+        </div>
+        <div class="tracking-info">
+            <div class="item">
+                <div class="label">Speed</div>
+                <div class="value" id="trackingSpeed">--</div>
+            </div>
+            <div class="item">
+                <div class="label">Heading</div>
+                <div class="value" id="trackingHeading">--</div>
+            </div>
+            <div class="item">
+                <div class="label">Updated</div>
+                <div class="value" id="trackingUpdated">--</div>
+            </div>
+        </div>
+        <button class="btn-track start" id="trackingBtn" onclick="toggleTracking()">▶ Start Tracking</button>
+    </div>
+    
+    <!-- <script>
+        // Pass scheduleId as a string that gets converted
+        var scheduleId = {{ today_schedule.id if today_schedule else 'null' }};
+        var trackingInterval = null;
+        var isTracking = false;
+        
+        // If scheduleId is null, don't enable tracking
+        var hasSchedule = {{ 'true' if today_schedule else 'false' }};
+    </script> -->
+
+    <script>
+        const scheduleId = JSON.parse('{{ today_schedule.id if today_schedule else "null" | tojson | safe }}');
+        const trackingInterval = null;
+        let isTracking = false;
+
+        const hasSchedule = JSON.parse('{{ (today_schedule is not none) | tojson | safe }}');
+    </script>
+    
+    
+    <script>
+        function getLocation() {
+            if (!hasSchedule) return;
+            
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        sendLocation(position);
+                    },
+                    function(error) {
+                        var statusEl = document.getElementById('trackingStatus');
+                        if (statusEl) statusEl.textContent = '⚠️ GPS Error: ' + error.message;
+                        console.error('GPS Error:', error);
+                    },
+                    { 
+                        enableHighAccuracy: true, 
+                        maximumAge: 3000, 
+                        timeout: 10000 
+                    }
+                );
+            } else {
+                var statusEl = document.getElementById('trackingStatus');
+                if (statusEl) statusEl.textContent = '⚠️ Geolocation not supported';
+            }
+        }
+
+        function sendLocation(position) {
+            var lat = position.coords.latitude;
+            var lng = position.coords.longitude;
+            var speed = position.coords.speed ? (position.coords.speed * 3.6).toFixed(1) : '0';
+            var heading = position.coords.heading || 0;
+            var direction = getDirection(heading);
+            var now = new Date().toLocaleTimeString();
+
+            var coordsEl = document.getElementById('trackingCoords');
+            var speedEl = document.getElementById('trackingSpeed');
+            var headingEl = document.getElementById('trackingHeading');
+            var updatedEl = document.getElementById('trackingUpdated');
+            
+            if (coordsEl) coordsEl.textContent = 'Lat: ' + lat.toFixed(6) + ', Lng: ' + lng.toFixed(6);
+            if (speedEl) speedEl.textContent = speed + ' km/h';
+            if (headingEl) headingEl.textContent = direction;
+            if (updatedEl) updatedEl.textContent = now;
+
+            fetch('/driver/update-location', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    latitude: lat,
+                    longitude: lng,
+                    speed: parseFloat(speed),
+                    heading: direction,
+                    schedule_id: scheduleId
+                })
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    var statusEl = document.getElementById('trackingStatus');
+                    if (statusEl) statusEl.textContent = '📍 Location: LIVE';
+                }
+            })
+            .catch(function(err) { console.error('Send error:', err); });
+        }
+
+        function getDirection(degrees) {
+            var directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+            return directions[Math.round(degrees / 45) % 8];
+        }
+
+        function toggleTracking() {
+            if (!hasSchedule) {
+                alert('No active schedule to track. Please check your today\'s route.');
+                return;
+            }
+            
+            var btn = document.getElementById('trackingBtn');
+            var dot = document.getElementById('trackingDot');
+            var bar = document.getElementById('trackingBar');
+            
+            if (isTracking) {
+                if (trackingInterval) {
+                    clearInterval(trackingInterval);
+                    trackingInterval = null;
+                }
+                isTracking = false;
+                if (btn) {
+                    btn.textContent = '▶ Start Tracking';
+                    btn.className = 'btn-track start';
+                }
+                if (dot) dot.classList.remove('live');
+                if (bar) bar.classList.remove('active');
+                
+                var statusEl = document.getElementById('trackingStatus');
+                var coordsEl = document.getElementById('trackingCoords');
+                var speedEl = document.getElementById('trackingSpeed');
+                var headingEl = document.getElementById('trackingHeading');
+                var updatedEl = document.getElementById('trackingUpdated');
+                
+                if (statusEl) statusEl.textContent = '📍 Location Sharing: OFF';
+                if (coordsEl) coordsEl.textContent = 'Press Start to share your location';
+                if (speedEl) speedEl.textContent = '--';
+                if (headingEl) headingEl.textContent = '--';
+                if (updatedEl) updatedEl.textContent = '--';
+            } else {
+                getLocation();
+                trackingInterval = setInterval(getLocation, 5000);
+                isTracking = true;
+                if (btn) {
+                    btn.textContent = '⏹ Stop Tracking';
+                    btn.className = 'btn-track stop';
+                }
+                if (dot) dot.classList.add('live');
+                if (bar) bar.classList.add('active');
+                
+                var statusEl = document.getElementById('trackingStatus');
+                if (statusEl) statusEl.textContent = '📍 Location: LIVE';
+            }
+        }
+
+        // Auto-start tracking if there's a schedule
+        if (hasSchedule && scheduleId) {
+            setTimeout(function() {
+                toggleTracking();
+            }, 2000);
+        }
+    </script>
+    
+</body>
+</html>

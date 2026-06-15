@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Schedules - Depot Manager{% endblock %}
+
+{% block sidebar_nav %}
+<div class="nav-label">Main Menu</div>
+<a href="/depot-manager/dashboard">📊 Dashboard</a>
+
+<div class="nav-label" style="margin-top: 20px;">Route Management</div>
+<a href="/depot-manager/routes">🗺️ Manage Routes</a>
+
+<div class="nav-label" style="margin-top: 20px;">Schedule Management</div>
+<a href="/depot-manager/schedules" class="active">📅 Manage Schedules</a>
+
+<div class="nav-label" style="margin-top: 20px;">Operations</div>
+<a href="/depot-manager/fuel-logs">⛽ Fuel Logs</a>
+<a href="/depot-manager/maintenance">🔧 Maintenance</a>
+
+<!-- <div class="nav-label" style="margin-top: 20px;">Reports</div>
+<a href="/depot-manager/reports">📈 Reports</a> -->
+
+<div class="nav-label" style="margin-top: 20px;">Account</div>
+<a href="/profile">👤 My Profile</a>
+<a href="/notifications">🔔 Notifications</a>
+{% endblock %}
+
+{% block page_title %}Manage Schedules{% endblock %}
+
+{% block content %}
+<style>
+    .btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 6px; }
+    .badge-scheduled { background: #dbeafe; color: #1e40af; }
+    .badge-on-time { background: #dcfce7; color: #166534; }
+    .badge-delayed { background: #fef3c7; color: #92400e; }
+    .badge-completed { background: #f1f5f9; color: #475569; }
+    .badge-cancelled { background: #fee2e2; color: #991b1b; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px; color: #1e293b; }
+    .form-group input, .form-group select {
+        width: 100%; padding: 10px 14px;
+        border: 2px solid #e5e7eb; border-radius: 8px;
+        font-size: 14px; font-family: inherit;
+    }
+    .form-group input:focus, .form-group select:focus {
+        outline: none; border-color: #8b5cf6;
+        box-shadow: 0 0 0 3px rgba(139,92,246,0.1);
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .modal-overlay {
+        display: none; position: fixed; top: 0; left: 0;
+        width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+        z-index: 1000; align-items: center; justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+        background: white; border-radius: 16px; width: 90%; max-width: 600px;
+        max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .modal-header {
+        padding: 20px 24px; border-bottom: 1px solid #e5e7eb;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .modal-header h3 { font-size: 18px; font-weight: 700; }
+    .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b; }
+    .close-btn:hover { color: #ef4444; }
+    .modal-body { padding: 24px; }
+    .modal-footer {
+        padding: 16px 24px; border-top: 1px solid #e5e7eb;
+        display: flex; gap: 10px; justify-content: flex-end;
+    }
+    .btn-primary { background: #8b5cf6; color: white; }
+    .btn-primary:hover { background: #7c3aed; }
+    .btn-outline { background: white; color: #8b5cf6; border: 2px solid #8b5cf6; }
+    .btn-warning { background: #d97706; color: white; }
+    .btn-warning:hover { background: #b45309; }
+</style>
+
+<div style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; padding: 25px 30px; border-radius: 14px; margin-bottom: 30px;">
+    <h2 style="margin-bottom: 5px;">📅 Schedule Management</h2>
+    <p style="opacity: 0.9; font-size: 14px;">Create and manage bus schedules for your depot.</p>
+</div>
+
+<div class="stats-grid" style="margin-bottom: 30px;">
+    <div class="stat-card">
+        <div class="stat-icon">📅</div>
+        <h3>{{ schedules|length }}</h3>
+        <p>Total Schedules</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <h3>{{ schedules|selectattr('status', 'equalto', 'completed')|list|length }}</h3>
+        <p>Completed</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">⏰</div>
+        <h3>{{ schedules|selectattr('status', 'equalto', 'on_time')|list|length }}</h3>
+        <p>On Time</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>📋 All Schedules</h3>
+        <button class="btn btn-primary" onclick="openAddModal()">➕ Add New Schedule</button>
+    </div>
+    <div class="card-body no-padding">
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <th style="padding: 12px 16px;">ID</th>
+                        <th style="padding: 12px 16px;">Route</th>
+                        <th style="padding: 12px 16px;">Vehicle</th>
+                        <th style="padding: 12px 16px;">Driver</th>
+                        <th style="padding: 12px 16px;">Date</th>
+                        <th style="padding: 12px 16px;">Departure</th>
+                        <th style="padding: 12px 16px;">Arrival</th>
+                        <th style="padding: 12px 16px;">Status</th>
+                        <th style="padding: 12px 16px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if schedules %}
+                        {% for schedule in schedules %}
+                        <tr style="border-bottom: 1px solid #e5e7eb;">
+                            <td style="padding: 12px 16px;"><strong>#{{ schedule.id }}</strong></td>
+                            <td style="padding: 12px 16px;">
+                                {{ schedule.route_name }}<br>
+                                <small style="color: #64748b;">{{ schedule.start_point }} → {{ schedule.end_point }}</small>
+                            </span>
+                            <td style="padding: 12px 16px;">{{ schedule.registration_number }}<br><small>{{ schedule.vehicle_code }}</small></span>
+                            <td style="padding: 12px 16px;">{{ schedule.driver_name }}</span>
+                            <td style="padding: 12px 16px;">{{ schedule.schedule_date }}</span>
+                            <td style="padding: 12px 16px;">{{ schedule.departure_time }}</span>
+                            <td style="padding: 12px 16px;">{{ schedule.arrival_time }}</span>
+                            <td style="padding: 12px 16px;">
+                                {% if schedule.status == 'scheduled' %}
+                                    <span class="badge-scheduled" style="padding: 4px 12px; border-radius: 20px;">📋 Scheduled</span>
+                                {% elif schedule.status == 'on_time' %}
+                                    <span class="badge-on-time" style="padding: 4px 12px; border-radius: 20px;">✅ On Time</span>
+                                {% elif schedule.status == 'delayed' %}
+                                    <span class="badge-delayed" style="padding: 4px 12px; border-radius: 20px;">⚠️ Delayed</span>
+                                {% elif schedule.status == 'completed' %}
+                                    <span class="badge-completed" style="padding: 4px 12px; border-radius: 20px;">✓ Completed</span>
+                                {% elif schedule.status == 'cancelled' %}
+                                    <span class="badge-cancelled" style="padding: 4px 12px; border-radius: 20px;">❌ Cancelled</span>
+                                {% endif %}
+                            </span>
+                            <td style="padding: 12px 16px;">
+                                <button class="btn btn-primary btn-sm" 
+                                    data-id="{{ schedule.id }}"
+                                    data-route-id="{{ schedule.route_id }}"
+                                    data-vehicle-id="{{ schedule.vehicle_id }}"
+                                    data-driver-id="{{ schedule.driver_id }}"
+                                    data-date="{{ schedule.schedule_date }}"
+                                    data-departure="{{ schedule.departure_time }}"
+                                    data-arrival="{{ schedule.arrival_time }}"
+                                    data-status="{{ schedule.status }}"
+                                    onclick="openEditModal(this)"
+                                    style="margin-right: 5px;">✏️ Edit</button>
+                            </span>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="9" style="text-align: center; padding: 50px; color: #64748b;">
+                                <div style="font-size: 48px; margin-bottom: 10px;">📅</div>
+                                <strong>No schedules found</strong><br>
+                                <small>Click "Add New Schedule" to create your first schedule.</small>
+                            </span
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Schedule Modal -->
+<div class="modal-overlay" id="addModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>📅 Add New Schedule</h3>
+            <button class="close-btn" onclick="closeAddModal()">✕</button>
+        </div>
+        <form method="POST" action="/depot-manager/schedules">
+            <input type="hidden" name="action" value="add">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Route *</label>
+                    <select name="route_id" required>
+                        <option value="">Select Route</option>
+                        {% for route in routes %}
+                            <option value="{{ route.id }}">{{ route.route_name }} ({{ route.start_point }} → {{ route.end_point }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Vehicle *</label>
+                        <select name="vehicle_id" required>
+                            <option value="">Select Vehicle</option>
+                            {% for vehicle in vehicles %}
+                                <option value="{{ vehicle.id }}">{{ vehicle.registration_number }} ({{ vehicle.vehicle_code }}) - {{ vehicle.seating_capacity }} seats</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Driver *</label>
+                        <select name="driver_id" required>
+                            <option value="">Select Driver</option>
+                            {% for driver in drivers %}
+                                <option value="{{ driver.id }}">{{ driver.first_name }} {{ driver.last_name }} (@{{ driver.username }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Date *</label>
+                        <input type="date" name="schedule_date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select name="status">
+                            <option value="scheduled">Scheduled</option>
+                            <option value="on_time">On Time</option>
+                            <option value="delayed">Delayed</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Departure Time *</label>
+                        <input type="time" name="departure_time" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Arrival Time *</label>
+                        <input type="time" name="arrival_time" required>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeAddModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">💾 Save Schedule</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Schedule Modal -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>✏️ Edit Schedule</h3>
+            <button class="close-btn" onclick="closeEditModal()">✕</button>
+        </div>
+        <form method="POST" action="/depot-manager/schedules" id="editForm">
+            <input type="hidden" name="action" value="edit">
+            <input type="hidden" name="schedule_id" id="edit_schedule_id">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Route *</label>
+                    <select name="route_id" id="edit_route_id" required>
+                        <option value="">Select Route</option>
+                        {% for route in routes %}
+                            <option value="{{ route.id }}">{{ route.route_name }} ({{ route.start_point }} → {{ route.end_point }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Vehicle *</label>
+                        <select name="vehicle_id" id="edit_vehicle_id" required>
+                            <option value="">Select Vehicle</option>
+                            {% for vehicle in vehicles %}
+                                <option value="{{ vehicle.id }}">{{ vehicle.registration_number }} ({{ vehicle.vehicle_code }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Driver *</label>
+                        <select name="driver_id" id="edit_driver_id" required>
+                            <option value="">Select Driver</option>
+                            {% for driver in drivers %}
+                                <option value="{{ driver.id }}">{{ driver.first_name }} {{ driver.last_name }} (@{{ driver.username }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Date *</label>
+                        <input type="date" name="schedule_date" id="edit_schedule_date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select name="status" id="edit_status">
+                            <option value="scheduled">Scheduled</option>
+                            <option value="on_time">On Time</option>
+                            <option value="delayed">Delayed</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Departure Time *</label>
+                        <input type="time" name="departure_time" id="edit_departure_time" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Arrival Time *</label>
+                        <input type="time" name="arrival_time" id="edit_arrival_time" required>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">💾 Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openAddModal() {
+        document.getElementById('addModal').classList.add('active');
+        // Set default date to today
+        const today = new Date().toISOString().split('T')[0];
+        document.querySelector('#addModal input[name="schedule_date"]').value = today;
+    }
+    
+    function closeAddModal() {
+        document.getElementById('addModal').classList.remove('active');
+    }
+    
+    function openEditModal(button) {
+        document.getElementById('edit_schedule_id').value = button.getAttribute('data-id');
+        document.getElementById('edit_route_id').value = button.getAttribute('data-route-id');
+        document.getElementById('edit_vehicle_id').value = button.getAttribute('data-vehicle-id');
+        document.getElementById('edit_driver_id').value = button.getAttribute('data-driver-id');
+        document.getElementById('edit_schedule_date').value = button.getAttribute('data-date');
+        document.getElementById('edit_departure_time').value = button.getAttribute('data-departure');
+        document.getElementById('edit_arrival_time').value = button.getAttribute('data-arrival');
+        document.getElementById('edit_status').value = button.getAttribute('data-status');
+        document.getElementById('editModal').classList.add('active');
+    }
+    
+    function closeEditModal() {
+        document.getElementById('editModal').classList.remove('active');
+    }
+    
+    // Close modals when clicking outside
+    document.getElementById('addModal')?.addEventListener('click', function(e) {
+        if (e.target === this) closeAddModal();
+    });
+    
+    document.getElementById('editModal')?.addEventListener('click', function(e) {
+        if (e.target === this) closeEditModal();
+    });
+</script>
+{% endblock %}

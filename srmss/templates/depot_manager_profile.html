@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Depot Manager Profile - SRMSS</title>
+    <style>
+        :root {
+            --primary: #8b5cf6;
+            --dark: #1e293b;
+            --gray: #64748b;
+            --border: #e5e7eb;
+            --white: #ffffff;
+            --success: #16a34a;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #f1f5f9;
+            min-height: 100vh;
+            display: flex;
+        }
+        
+        .sidebar {
+            width: 260px; background: var(--dark); color: #cbd5e1;
+            min-height: 100vh; position: fixed; left: 0; top: 0; bottom: 0;
+            z-index: 100; display: flex; flex-direction: column;
+        }
+        
+        .sidebar-brand {
+            padding: 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; gap: 12px;
+        }
+        
+        .sidebar-brand .icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            border-radius: 10px; display: flex; align-items: center;
+            justify-content: center; font-size: 20px;
+        }
+        
+        .sidebar-brand h3 { font-size: 16px; font-weight: 700; color: white; }
+        .sidebar-brand span { font-size: 11px; color: #a78bfa; display: block; font-weight: 600; }
+        
+        .sidebar-nav { flex: 1; padding: 20px 15px; overflow-y: auto; }
+        
+        .sidebar-nav .nav-label {
+            font-size: 10px; text-transform: uppercase; letter-spacing: 2px;
+            color: #64748b; margin-bottom: 10px; padding: 0 10px; font-weight: 700;
+        }
+        
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 15px; color: #94a3b8; text-decoration: none;
+            border-radius: 8px; font-size: 14px; font-weight: 500;
+            transition: all 0.2s; margin-bottom: 2px;
+        }
+        
+        .sidebar-nav a:hover { background: rgba(255,255,255,0.05); color: white; }
+        .sidebar-nav a.active { background: rgba(139,92,246,0.15); color: #a78bfa; font-weight: 600; }
+        
+        .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+        
+        .user-info { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        
+        .user-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 14px; color: white;
+        }
+        
+        .user-details { flex: 1; }
+        .user-details .name { font-weight: 600; font-size: 13px; color: white; }
+        .user-details .role { font-size: 11px; color: #a78bfa; font-weight: 600; }
+        
+        .btn-logout {
+            display: block; width: 100%; padding: 8px;
+            background: rgba(239,68,68,0.1); color: #ef4444;
+            border: 1px solid rgba(239,68,68,0.3); border-radius: 6px;
+            text-align: center; text-decoration: none;
+            font-size: 13px; font-weight: 500; transition: all 0.2s;
+        }
+        .btn-logout:hover { background: rgba(239,68,68,0.2); }
+        
+        .main-content { margin-left: 260px; flex: 1; }
+        
+        .top-bar {
+            background: white; padding: 16px 30px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 50;
+        }
+        
+        .top-bar h2 { font-size: 20px; font-weight: 700; color: var(--dark); }
+        
+        .content-area { padding: 30px; }
+        
+        .flash-message {
+            padding: 12px 15px; border-radius: 8px; margin-bottom: 20px;
+            font-size: 14px; font-weight: 500;
+        }
+        .flash-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        
+        .profile-card {
+            background: white; border-radius: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            overflow: hidden;
+            max-width: 600px;
+        }
+        
+        .profile-header {
+            padding: 30px;
+            text-align: center;
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+        }
+        
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            background: white;
+            color: #8b5cf6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            font-weight: 700;
+            margin: 0 auto 15px;
+        }
+        
+        .profile-header h3 { font-size: 20px; margin-bottom: 5px; }
+        .profile-header p { opacity: 0.9; font-size: 13px; }
+        
+        .profile-body { padding: 30px; }
+        
+        .form-group { margin-bottom: 20px; }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--dark);
+            font-weight: 600;
+            font-size: 13px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(139,92,246,0.1);
+        }
+        
+        .form-group input:disabled {
+            background: #f1f5f9;
+            color: var(--gray);
+        }
+        
+        .btn-save {
+            padding: 12px 24px;
+            background: var(--success);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+        .btn-save:hover { background: #15803d; transform: translateY(-1px); }
+        
+        @media (max-width: 768px) {
+            .sidebar { width: 70px; }
+            .sidebar-brand h3, .sidebar-brand span,
+            .sidebar-nav a span, .sidebar-nav .nav-label,
+            .user-details { display: none; }
+            .sidebar-nav a { justify-content: center; padding: 12px; }
+            .main-content { margin-left: 70px; }
+            .profile-card { max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <div class="icon">🏭</div>
+            <div>
+                <h3>SRMSS</h3>
+                <span>Depot Manager Portal</span>
+            </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <div class="nav-label">Main Menu</div>
+            <a href="/depot-manager/dashboard">📊 Dashboard</a>
+            
+            <div class="nav-label" style="margin-top: 20px;">Route Management</div>
+            <a href="/depot-manager/routes">🗺️ Manage Routes</a>
+            
+            <div class="nav-label" style="margin-top: 20px;">Vehicle Management</div>
+            <a href="/depot-manager/vehicles">🚍 Manage Vehicles</a>
+            <a href="/depot-manager/assign-vehicles">🚛 Assign Vehicles</a>
+            
+            <div class="nav-label" style="margin-top: 20px;">Schedule Management</div>
+            <a href="/depot-manager/schedules">📅 Manage Schedules</a>
+            <a href="/depot-manager/assign-drivers">👨‍✈️ Assign Drivers</a>
+            
+            <div class="nav-label" style="margin-top: 20px;">Operations</div>
+            <a href="/depot-manager/fuel-logs">⛽ Fuel Logs</a>
+            <a href="/depot-manager/maintenance">🔧 Maintenance</a>
+            
+            <!-- <div class="nav-label" style="margin-top: 20px;">Reports</div>
+            <a href="/depot-manager/reports">📈 Reports</a> -->
+            
+            <div class="nav-label" style="margin-top: 20px;">Account</div>
+            <a href="/profile" class="active">👤 My Profile</a>
+            <a href="/notifications">🔔 Notifications</a>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">{{ session.get('first_name', 'D')[0] }}{{ session.get('last_name', 'M')[0] }}</div>
+                <div class="user-details">
+                    <div class="name">{{ session.get('first_name', 'Depot') }} {{ session.get('last_name', 'Manager') }}</div>
+                    <div class="role">Depot Manager</div>
+                </div>
+            </div>
+            <a href="/logout" class="btn-logout">🚪 Logout</a>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="top-bar">
+            <h2>👤 My Profile</h2>
+        </div>
+        
+        <div class="content-area">
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <div class="profile-card">
+                <div class="profile-header">
+                    <div class="profile-avatar">
+                        {{ session.get('first_name', 'D')[0] }}{{ session.get('last_name', 'M')[0] }}
+                    </div>
+                    <h3>{{ session.get('first_name', 'Depot') }} {{ session.get('last_name', 'Manager') }}</h3>
+                    <p>Depot Manager since {{ user.created_at.strftime('%B %Y') if user and user.created_at else 'N/A' }}</p>
+                </div>
+                
+                <form method="POST" action="/profile">
+                    <div class="profile-body">
+                        <div class="form-group">
+                            <label>First Name</label>
+                            <input type="text" name="first_name" value="{{ user.first_name if user else '' }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Last Name</label>
+                            <input type="text" name="last_name" value="{{ user.last_name if user else '' }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Username</label>
+                            <input type="text" value="{{ user.username if user else '' }}" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" value="{{ user.email if user else '' }}" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Phone Number</label>
+                            <input type="tel" name="phone" value="{{ user.phone if user else '' }}" placeholder="Enter your phone number">
+                        </div>
+                        <div class="form-group">
+                            <label>Address</label>
+                            <input type="text" name="address" value="{{ user.address if user else '' }}" placeholder="Enter your address">
+                        </div>
+                        <button type="submit" class="btn-save">💾 Update Profile</button>
+                    </div>
+                </form>
+            </div>
+            
+        </div>
+    </div>
+    
+</body>
+</html>

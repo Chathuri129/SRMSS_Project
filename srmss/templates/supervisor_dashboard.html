@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Supervisor Dashboard - SRMSS{% endblock %}
+
+{% block sidebar_nav %}
+<div class="nav-label">Main Menu</div>
+<a href="/supervisor/dashboard" class="active">📊 Dashboard</a>
+
+<div class="nav-label" style="margin-top: 20px;">Route Management</div>
+<a href="/admin/routes">🗺️ View/Create Routes</a>
+
+<div class="nav-label" style="margin-top: 20px;">Vehicle Management</div>
+<a href="/admin/vehicles">🚍 Manage Vehicles</a>
+
+<div class="nav-label" style="margin-top: 20px;">Driver Management</div>
+<a href="/admin/drivers">👨‍✈️ View Drivers</a>
+
+<div class="nav-label" style="margin-top: 20px;">Schedule Management</div>
+<a href="/admin/schedules">📅 Create/Update Schedules</a>
+
+<div class="nav-label" style="margin-top: 20px;">Operations</div>
+<a href="/admin/fuel-logs">⛽ Record Fuel Usage</a>
+<a href="/admin/maintenance">🔧 Update Maintenance Records</a>
+
+<div class="nav-label" style="margin-top: 20px;">Live Tracking</div>
+<a href="/live-track">📍 Live Bus Tracking</a>
+
+<div class="nav-label" style="margin-top: 20px;">Monitoring</div>
+<a href="/supervisor/tickets">🎫 Support Tickets</a>
+
+<div class="nav-label" style="margin-top: 20px;">Reports</div>
+<a href="/supervisor/reports">📈 View Reports</a>
+
+<div class="nav-label" style="margin-top: 20px;">Account</div>
+<a href="/profile">👤 My Profile</a>
+<a href="/notifications">🔔 Notifications</a>
+<a href="/logout">🚪 Logout</a>
+{% endblock %}
+
+{% block page_title %}Supervisor Dashboard{% endblock %}
+
+{% block content %}
+<div style="background: linear-gradient(135deg, #06b6d4, #0891b2); color: white; padding: 25px 30px; border-radius: 14px; margin-bottom: 30px;">
+    <h2 style="margin-bottom: 5px;">Welcome, {{ session.get('first_name', 'Supervisor') }}! 👁️</h2>
+    <p style="opacity: 0.9; font-size: 14px;">Monitor operations, manage routes, schedules, and track fleet performance.</p>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">🗺️</div>
+        <h3 id="totalRoutes">{{ stats.total_routes }}</h3>
+        <p>Active Routes</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">🚍</div>
+        <h3 id="totalVehicles">{{ stats.total_vehicles }}</h3>
+        <p>Total Vehicles</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">👨‍✈️</div>
+        <h3 id="totalDrivers">{{ stats.total_drivers }}</h3>
+        <p>Active Drivers</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">📍</div>
+        <h3 id="activeBuses">{{ stats.active_buses }}</h3>
+        <p>Buses on Road</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">📅</div>
+        <h3 id="todayTrips">{{ stats.today_schedules }}</h3>
+        <p>Today's Trips</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">🎫</div>
+        <h3 id="openTickets">{{ stats.open_tickets }}</h3>
+        <p>Open Tickets</p>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px;">
+    <div class="card">
+        <div class="card-header">
+            <h3>📍 Live Bus Status</h3>
+            <a href="/live-track" class="btn-sm btn-outline">View Map →</a>
+        </div>
+        <div class="card-body">
+            <div id="busStatusList">
+                <p>Loading active buses...</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h3>🎫 Recent Support Tickets</h3>
+            <a href="/supervisor/tickets" class="btn-sm btn-outline">View All →</a>
+        </div>
+        <div class="card-body no-padding">
+            <div id="recentTickets">
+                <p style="padding: 20px; text-align: center;">Loading tickets...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 20px;">
+    <div class="card-header">
+        <h3>⚡ Quick Actions</h3>
+    </div>
+    <div class="card-body">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <a href="/admin/routes" class="btn btn-primary" style="justify-content: center; background: #1a73e8;">🗺️ Create Route</a>
+            <a href="/admin/schedules" class="btn btn-primary" style="justify-content: center; background: #8b5cf6;">📅 Create Schedule</a>
+            <a href="/admin/vehicles" class="btn btn-primary" style="justify-content: center; background: #16a34a;">🚍 Manage Vehicles</a>
+            <a href="/admin/fuel-logs" class="btn btn-primary" style="justify-content: center; background: #f59e0b;">⛽ Record Fuel</a>
+            <a href="/admin/maintenance" class="btn btn-primary" style="justify-content: center; background: #ef4444;">🔧 Maintenance</a>
+            <a href="/supervisor/reports" class="btn btn-primary" style="justify-content: center; background: #d97706;">📊 View Reports</a>
+            <a href="/live-track" class="btn btn-primary" style="justify-content: center; background: #06b6d4;">📍 Live Tracking</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    fetch('/api/active-buses')
+        .then(res => res.json())
+        .then(data => {
+            const container = document.getElementById('busStatusList');
+            if (data.buses && data.buses.length > 0) {
+                let html = '<ul style="list-style: none;">';
+                data.buses.forEach(bus => {
+                    html += `<li style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+                        <strong>🚌 ${bus.route_name || 'Bus'}</strong><br>
+                        <small>${bus.from || 'N/A'} → ${bus.to || 'N/A'}</small><br>
+                        <small>Speed: ${bus.speed || 0} km/h | Updated: ${bus.updated_at || 'Just now'}</small>
+                    </li>`;
+                });
+                html += '</ul>';
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = '<p style="text-align:center;padding:20px;">No active buses at the moment.<br><small>Buses will appear here when drivers enable location sharing.</small></p>';
+            }
+        })
+        .catch(err => {
+            document.getElementById('busStatusList').innerHTML = '<p style="text-align:center;padding:20px;">Error loading bus data</p>';
+        });
+    
+    fetch('/api/recent-tickets')
+        .then(res => res.json())
+        .then(data => {
+            const container = document.getElementById('recentTickets');
+            if (data.tickets && data.tickets.length > 0) {
+                let html = '<div style="max-height: 300px; overflow-y: auto;">';
+                data.tickets.forEach(ticket => {
+                    html += `<div style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <strong>#${ticket.ticket_number}</strong>
+                            <span class="badge ${ticket.status === 'open' ? 'badge-warning' : 'badge-success'}">${ticket.status}</span>
+                        </div>
+                        <div style="font-size: 13px; margin-top: 5px;">${ticket.subject}</div>
+                        <div style="font-size: 11px; color: #64748b; margin-top: 5px;">From: ${ticket.user_name}</div>
+                    </div>`;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = '<p style="text-align:center;padding:20px;">No support tickets</p>';
+            }
+        })
+        .catch(err => {
+            document.getElementById('recentTickets').innerHTML = '<p style="text-align:center;padding:20px;">Error loading tickets</p>';
+        });
+</script>
+{% endblock %}

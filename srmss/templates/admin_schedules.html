@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Schedules - SRMSS</title>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --dark: #1e293b;
+            --gray: #64748b;
+            --light: #f8fafc;
+            --border: #e5e7eb;
+            --white: #ffffff;
+            --danger: #ef4444;
+            --success: #16a34a;
+            --warning: #d97706;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #f1f5f9;
+            min-height: 100vh;
+            display: flex;
+        }
+        
+        .sidebar {
+            width: 260px; background: var(--dark); color: #cbd5e1;
+            min-height: 100vh; position: fixed; left: 0; top: 0; bottom: 0;
+            z-index: 100; display: flex; flex-direction: column;
+        }
+        
+        .sidebar-brand {
+            padding: 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; gap: 12px;
+        }
+        
+        .sidebar-brand .icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            border-radius: 10px; display: flex; align-items: center;
+            justify-content: center; font-size: 20px;
+        }
+        
+        .sidebar-brand h3 { font-size: 16px; font-weight: 700; color: white; }
+        .sidebar-brand span { font-size: 11px; color: #fbbf24; display: block; font-weight: 600; }
+        
+        .sidebar-nav { flex: 1; padding: 20px 15px; overflow-y: auto; }
+        
+        .sidebar-nav .nav-label {
+            font-size: 10px; text-transform: uppercase; letter-spacing: 2px;
+            color: #64748b; margin-bottom: 10px; padding: 0 10px; font-weight: 700;
+        }
+        
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 15px; color: #94a3b8; text-decoration: none;
+            border-radius: 8px; font-size: 14px; font-weight: 500;
+            transition: all 0.2s; margin-bottom: 2px;
+        }
+        
+        .sidebar-nav a:hover { background: rgba(255,255,255,0.05); color: white; }
+        .sidebar-nav a.active { background: rgba(251,191,36,0.15); color: #fbbf24; font-weight: 600; }
+        
+        .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+        
+        .user-info { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        
+        .user-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 14px; color: #1e293b;
+        }
+        
+        .user-details { flex: 1; }
+        .user-details .name { font-weight: 600; font-size: 13px; color: white; }
+        .user-details .role { font-size: 11px; color: #fbbf24; font-weight: 600; }
+        
+        .btn-logout {
+            display: block; width: 100%; padding: 8px;
+            background: rgba(239,68,68,0.1); color: #ef4444;
+            border: 1px solid rgba(239,68,68,0.3); border-radius: 6px;
+            text-align: center; text-decoration: none;
+            font-size: 13px; font-weight: 500; transition: all 0.2s;
+        }
+        .btn-logout:hover { background: rgba(239,68,68,0.2); }
+        
+        .main-content { margin-left: 260px; flex: 1; }
+        
+        .top-bar {
+            background: white; padding: 16px 30px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 50;
+        }
+        
+        .top-bar h2 { font-size: 20px; font-weight: 700; color: var(--dark); }
+        
+        .content-area { padding: 30px; }
+        
+        .flash-message {
+            padding: 12px 15px; border-radius: 8px; margin-bottom: 20px;
+            font-size: 14px; font-weight: 500;
+        }
+        .flash-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        
+        .btn {
+            padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
+            border: none; cursor: pointer; transition: all 0.2s;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #1557b0; transform: translateY(-1px); }
+        .btn-outline { background: white; color: var(--primary); border: 2px solid var(--primary); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #dc2626; transform: translateY(-1px); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #15803d; transform: translateY(-1px); }
+        .btn-warning { background: #d97706; color: white; }
+        .btn-warning:hover { background: #b45309; }
+        .btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 6px; }
+        
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+            z-index: 1000; align-items: center; justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        
+        .modal {
+            background: white; border-radius: 16px; width: 90%; max-width: 1200px;
+            max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            padding: 20px 24px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .modal-header h3 { font-size: 18px; font-weight: 700; }
+        
+        .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--gray); }
+        .close-btn:hover { color: var(--danger); }
+        
+        .modal-body { padding: 24px; }
+        .modal-footer {
+            padding: 16px 24px; border-top: 1px solid var(--border);
+            display: flex; gap: 10px; justify-content: flex-end;
+        }
+        
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block; margin-bottom: 6px; color: var(--dark);
+            font-weight: 600; font-size: 13px;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 10px 14px;
+            border: 2px solid var(--border); border-radius: 8px;
+            font-size: 14px;
+        }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        
+        .card {
+            background: white; border-radius: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden;
+        }
+        
+        .card-header {
+            padding: 18px 24px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .card-header h3 { font-size: 16px; font-weight: 700; color: var(--dark); }
+        .card-body { padding: 24px; }
+        .card-body.no-padding { padding: 0; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        
+        th {
+            background: #f8fafc; padding: 12px 16px; text-align: left;
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.5px; color: var(--gray);
+            border-bottom: 2px solid var(--border);
+        }
+        
+        td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--dark); }
+        tr:hover { background: #f8fafc; }
+        
+        .badge {
+            padding: 4px 12px; border-radius: 20px;
+            font-size: 11px; font-weight: 700; display: inline-block;
+        }
+        .badge-scheduled { background: #dbeafe; color: #1e40af; }
+        .badge-on-time { background: #dcfce7; color: #166534; }
+        .badge-delayed { background: #fef3c7; color: #92400e; }
+        .badge-completed { background: #f1f5f9; color: #475569; }
+        .badge-cancelled { background: #fee2e2; color: #991b1b; }
+        
+        .map-container { height: 500px; width: 100%; border-radius: 12px; overflow: hidden; margin-bottom: 15px; }
+        #trackMap { width: 100%; height: 100%; }
+        
+        .route-info-panel {
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .progress-container {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+        
+        .progress-bar {
+            height: 10px;
+            background: #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #16a34a, #22c55e);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        
+        .bus-speed {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a73e8;
+        }
+        
+        .eta-info {
+            font-size: 14px;
+            color: #64748b;
+            margin-top: 5px;
+        }
+        
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .speed-control input {
+            width: 150px;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar { width: 70px; }
+            .sidebar-brand h3, .sidebar-brand span,
+            .sidebar-nav a span, .sidebar-nav .nav-label,
+            .user-details { display: none; }
+            .sidebar-nav a { justify-content: center; padding: 12px; }
+            .main-content { margin-left: 70px; }
+            .form-row { grid-template-columns: 1fr; }
+            .modal { width: 98%; }
+            .map-container { height: 350px; }
+            .control-buttons { gap: 8px; }
+            .btn { padding: 6px 12px; font-size: 11px; }
+        }
+    </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+    
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <div class="icon">👑</div>
+            <div>
+                <h3>SRMSS</h3>
+                <span>Admin Panel</span>
+            </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <div class="nav-label">Main Menu</div>
+            <a href="/admin/dashboard">📊 Dashboard</a>
+            <div class="nav-label" style="margin-top: 20px;">Management</div>
+            <a href="/admin/routes">🗺️ Routes</a>
+            <a href="/admin/vehicles">🚍 Vehicles</a>
+            <a href="/admin/drivers">👨‍✈️ Drivers</a>
+            <a href="/admin/schedules" class="active">📅 Schedules</a>
+            <div class="nav-label" style="margin-top: 20px;">Operations</div>
+            <a href="/admin/fuel-logs">⛽ Fuel Logs</a>
+            <a href="/admin/maintenance">🔧 Maintenance</a>
+            <div class="nav-label" style="margin-top: 20px;">System</div>
+            <a href="/admin/users">👥 Users</a>
+            <a href="/admin/reports">📈 Reports</a>
+            <a href="/admin/settings">⚙️ Settings</a>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">{{ session.get('first_name', 'A')[0] }}{{ session.get('last_name', 'U')[0] }}</div>
+                <div class="user-details">
+                    <div class="name">{{ session.get('first_name', 'Admin') }} {{ session.get('last_name', 'User') }}</div>
+                    <div class="role">{{ session.get('role', 'Administrator')|title }}</div>
+                </div>
+            </div>
+            <a href="/logout" class="btn-logout">🚪 Logout</a>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="top-bar">
+            <h2>📅 Schedule Management</h2>
+            <button class="btn btn-primary" onclick="openModal()">➕ Add New Schedule</button>
+        </div>
+        
+        <div class="content-area">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <div class="card">
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Route</th>
+                                <th>Vehicle</th>
+                                <th>Driver</th>
+                                <th>Date</th>
+                                <th>Departure</th>
+                                <th>Arrival</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if schedules %}
+                                {% for schedule in schedules %}
+                                <tr style="border-bottom: 1px solid #e5e7eb;">
+                                    <td style="padding: 12px 16px;"><strong>#{{ schedule.id }}</strong></td>
+                                    <td style="padding: 12px 16px;">
+                                        {{ schedule.route_name }}<br>
+                                        <small style="color:var(--gray);">{{ schedule.start_point }} → {{ schedule.end_point }}</small>
+                                    </span>
+                                    <td style="padding: 12px 16px;">{{ schedule.registration_number }}</span>
+                                    <td style="padding: 12px 16px;">{{ schedule.driver_name }}</span>
+                                    <td style="padding: 12px 16px;">{{ schedule.schedule_date }}</span>
+                                    <td style="padding: 12px 16px;">{{ schedule.departure_time }}</span>
+                                    <td style="padding: 12px 16px;">{{ schedule.arrival_time }}</span>
+                                    <td style="padding: 12px 16px;">
+                                        {% if schedule.status == 'scheduled' %}
+                                            <span class="badge badge-scheduled">📋 Scheduled</span>
+                                        {% elif schedule.status == 'on_time' %}
+                                            <span class="badge badge-on-time">✅ On Time</span>
+                                        {% elif schedule.status == 'delayed' %}
+                                            <span class="badge badge-delayed">⚠️ Delayed</span>
+                                        {% elif schedule.status == 'completed' %}
+                                            <span class="badge badge-completed">✓ Completed</span>
+                                        {% else %}
+                                            <span class="badge badge-cancelled">❌ Cancelled</span>
+                                        {% endif %}
+                                    </span>
+                                    <td style="padding: 12px 16px;">
+                                        <button class="btn btn-primary btn-sm" onclick="openEditModal(this)" style="margin-right: 5px;"
+                                            data-id="{{ schedule.id }}" data-route-id="{{ schedule.route_id }}"
+                                            data-vehicle-id="{{ schedule.vehicle_id }}" data-driver-id="{{ schedule.driver_id }}"
+                                            data-date="{{ schedule.schedule_date }}" data-departure="{{ schedule.departure_time }}"
+                                            data-arrival="{{ schedule.arrival_time }}" data-status="{{ schedule.status }}">✏️ Edit</button>
+                                        
+                                        <button class="btn btn-success btn-sm" style="margin-right: 5px;"
+                                            data-id="{{ schedule.id }}" data-route-name="{{ schedule.route_name }}"
+                                            data-start-point="{{ schedule.start_point }}" data-end-point="{{ schedule.end_point }}"
+                                            data-departure="{{ schedule.departure_time }}" data-arrival="{{ schedule.arrival_time }}"
+                                            data-distance="{{ schedule.total_distance }}"
+                                            onclick="openTrackModal(this)">📍 Track Bus</button>
+                                        
+                                        <form method="POST" action="/admin/schedules/delete" style="display: inline;" onsubmit="return confirm('Delete this schedule?');">
+                                            <input type="hidden" name="schedule_id" value="{{ schedule.id }}">
+                                            <button type="submit" class="btn btn-danger btn-sm">🗑️ Delete</button>
+                                        </form>
+                                    </span>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="9" style="text-align: center; padding: 40px; color: var(--gray);">
+                                        No schedules found. Click "Add New Schedule" to create one.
+                                    </span
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Schedule Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>📅 Add New Schedule</h3>
+                <button class="close-btn" onclick="closeModal()">✕</button>
+            </div>
+            <form method="POST" action="/admin/schedules">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Route *</label>
+                        <select name="route_id" required>
+                            <option value="">Select Route</option>
+                            {% for route in routes %}
+                                <option value="{{ route.id }}">{{ route.route_name }} ({{ route.start_point }} → {{ route.end_point }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Vehicle *</label>
+                            <select name="vehicle_id" required>
+                                <option value="">Select Vehicle</option>
+                                {% for vehicle in vehicles %}
+                                    <option value="{{ vehicle.id }}">{{ vehicle.registration_number }} ({{ vehicle.vehicle_code }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Driver *</label>
+                            <select name="driver_id" required>
+                                <option value="">Select Driver</option>
+                                {% for driver in drivers %}
+                                    <option value="{{ driver.id }}">{{ driver.first_name }} {{ driver.last_name }} (@{{ driver.username }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Date *</label>
+                            <input type="date" name="schedule_date" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select name="status">
+                                <option value="scheduled">Scheduled</option>
+                                <option value="on_time">On Time</option>
+                                <option value="delayed">Delayed</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Departure Time *</label>
+                            <input type="time" name="departure_time" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Arrival Time *</label>
+                            <input type="time" name="arrival_time" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">💾 Save Schedule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Edit Schedule Modal -->
+    <div class="modal-overlay" id="editModalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>✏️ Edit Schedule</h3>
+                <button class="close-btn" onclick="closeEditModal()">✕</button>
+            </div>
+            <form method="POST" action="/admin/schedules/edit">
+                <input type="hidden" name="schedule_id" id="edit_schedule_id">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Route *</label>
+                        <select name="route_id" id="edit_route_id" required>
+                            <option value="">Select Route</option>
+                            {% for route in routes %}
+                                <option value="{{ route.id }}">{{ route.route_name }} ({{ route.start_point }} → {{ route.end_point }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Vehicle *</label>
+                            <select name="vehicle_id" id="edit_vehicle_id" required>
+                                <option value="">Select Vehicle</option>
+                                {% for vehicle in vehicles %}
+                                    <option value="{{ vehicle.id }}">{{ vehicle.registration_number }} ({{ vehicle.vehicle_code }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Driver *</label>
+                            <select name="driver_id" id="edit_driver_id" required>
+                                <option value="">Select Driver</option>
+                                {% for driver in drivers %}
+                                    <option value="{{ driver.id }}">{{ driver.first_name }} {{ driver.last_name }} (@{{ driver.username }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Date *</label>
+                            <input type="date" name="schedule_date" id="edit_schedule_date" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select name="status" id="edit_status">
+                                <option value="scheduled">Scheduled</option>
+                                <option value="on_time">On Time</option>
+                                <option value="delayed">Delayed</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Departure Time *</label>
+                            <input type="time" name="departure_time" id="edit_departure_time" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Arrival Time *</label>
+                            <input type="time" name="arrival_time" id="edit_arrival_time" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">💾 Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Track Route Modal with Bus Animation -->
+    <div class="modal-overlay" id="trackModalOverlay">
+        <div class="modal" style="max-width: 95%; width: 1200px;">
+            <div class="modal-header">
+                <h3>🚍 Live Bus Tracking - <span id="trackRouteName" style="color:#1a73e8;"></span></h3>
+                <button class="close-btn" onclick="closeTrackModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="route-info-panel">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div><strong>🚩 Start Point:</strong> <span id="trackStartPoint" style="color:#16a34a; font-weight:600;"></span></div>
+                        <div><strong>🏁 End Point:</strong> <span id="trackEndPoint" style="color:#ef4444; font-weight:600;"></span></div>
+                        <div><strong>📅 Schedule ID:</strong> <span id="trackScheduleId"></span></div>
+                        <div><strong>⏰ Departure:</strong> <span id="trackDepartureTime"></span> → <strong>Arrival:</strong> <span id="trackArrivalTime"></span></div>
+                        <div><strong>📏 Distance:</strong> <span id="trackDistance"></span> km</div>
+                        <div><strong>🚍 Bus Speed:</strong> <span id="busSpeedDisplay" class="bus-speed">0 km/h</span></div>
+                    </div>
+                </div>
+                
+                <div class="map-container">
+                    <div id="trackMap" style="height: 500px; width: 100%;"></div>
+                </div>
+                
+                <div class="progress-container">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span>📍 Journey Progress</span>
+                        <span><span id="progressPercent">0</span>% Complete</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px;">
+                        <span>🚩 <span id="currentLocationName">Start</span></span>
+                        <span>🏁 Destination</span>
+                    </div>
+                    <div class="eta-info" id="etaInfo"></div>
+                </div>
+                
+                <div class="control-buttons">
+                    <button class="btn btn-warning" id="startBtn" onclick="startBusAnimation()">▶ Start Journey</button>
+                    <button class="btn btn-outline" onclick="resetBusPosition()">🔄 Reset to Start</button>
+                    <button class="btn btn-outline" onclick="pauseBusAnimation()">⏸ Pause</button>
+                    <button class="btn btn-outline" onclick="resumeBusAnimation()">▶ Resume</button>
+                </div>
+                
+                <div class="speed-control">
+                    <span>⚡ Speed Control:</span>
+                    <input type="range" id="speedSlider" min="20" max="120" value="60" step="5">
+                    <span id="speedValue">60</span> km/h
+                </div>
+                
+                <div style="margin-top: 15px; text-align: center; font-size: 12px; color: #64748b;">
+                    🚩 Green flag = Start Point | 🏁 Red flag = End Point | 🚌 Blue bus = Moving vehicle | Blue line = Route path
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeTrackModal()">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Complete Sri Lanka city coordinates database
+        var cityCoordinates = {
+            'Colombo': [6.9271, 79.8612], 'Kandy': [7.2906, 80.6337], 'Galle': [6.0328, 80.2168],
+            'Matara': [5.9491, 80.5439], 'Jaffna': [9.6615, 80.0255], 'Kataragama': [6.4167, 81.3333],
+            'Katharagama': [6.4167, 81.3333], 'Hambantota': [6.1241, 81.1196], 'Anuradhapura': [8.3114, 80.4037],
+            'Vavuniya': [8.7500, 80.5000], 'Trincomalee': [8.5774, 81.2128], 'Batticaloa': [7.7173, 81.7005],
+            'Ratnapura': [6.7055, 80.3843], 'Badulla': [6.9931, 81.0553], 'Nuwara Eliya': [6.9497, 80.7891],
+            'Kurunegala': [7.4863, 80.3623], 'Negombo': [7.2092, 79.8357], 'Ella': [6.8667, 81.05],
+            'Dikwalla': [5.92, 80.62], 'Thangalla': [6.05, 80.8], 'Kalutara': [6.5833, 79.9667],
+            'Bentota': [6.4167, 80.0], 'Ambalangoda': [6.2333, 80.0667], 'Hikkaduwa': [6.1333, 80.1],
+            'Weligama': [5.9667, 80.4333], 'Mirissa': [5.95, 80.4667], 'Gampaha': [7.0833, 80.0],
+            'Warakapola': [7.2167, 80.2], 'Mawanella': [7.25, 80.45], 'Peradeniya': [7.2667, 80.6],
+            'Katugastota': [7.3167, 80.6167], 'Matale': [7.4667, 80.6167], 'Dambulla': [7.8667, 80.65],
+            'Habarana': [8.0333, 80.75], 'Mihintale': [8.35, 80.5], 'Kilinochchi': [9.3833, 80.4],
+            'Puttalam': [8.0333, 79.8333], 'Mannar': [8.9833, 79.9], 'Polonnaruwa': [7.9393, 81.0]
+        };
+        
+        // Realistic route paths between cities
+        var routePaths = {
+            'Matara - Galle': [
+                [5.9491,80.5439], [5.97,80.53], [5.99,80.48], [6.01,80.43], [6.03,80.38], 
+                [6.04,80.33], [6.03,80.28], [6.02,80.24], [6.0328,80.2168]
+            ],
+            'Matara-Galle': [
+                [5.9491,80.5439], [5.97,80.53], [5.99,80.48], [6.01,80.43], [6.03,80.38], 
+                [6.04,80.33], [6.03,80.28], [6.02,80.24], [6.0328,80.2168]
+            ],
+            'Colombo - Kandy': [
+                [6.9271,79.8612], [6.96,79.89], [7.01,79.93], [7.06,79.97], [7.11,80.01],
+                [7.16,80.06], [7.22,80.11], [7.28,80.17], [7.33,80.23], [7.38,80.29],
+                [7.42,80.35], [7.45,80.41], [7.44,80.47], [7.41,80.53], [7.37,80.59],
+                [7.33,80.63], [7.2906,80.6337]
+            ],
+            'Colombo-Kandy': [
+                [6.9271,79.8612], [6.96,79.89], [7.01,79.93], [7.06,79.97], [7.11,80.01],
+                [7.16,80.06], [7.22,80.11], [7.28,80.17], [7.33,80.23], [7.38,80.29],
+                [7.42,80.35], [7.45,80.41], [7.44,80.47], [7.41,80.53], [7.37,80.59],
+                [7.33,80.63], [7.2906,80.6337]
+            ],
+            'Colombo - Galle': [
+                [6.9271,79.8612], [6.89,79.88], [6.85,79.89], [6.81,79.91], [6.77,79.93],
+                [6.73,79.95], [6.69,79.97], [6.65,80.00], [6.61,80.03], [6.57,80.06],
+                [6.53,80.10], [6.49,80.14], [6.45,80.18], [6.41,80.22], [6.37,80.26],
+                [6.33,80.30], [6.29,80.34], [6.25,80.38], [6.21,80.42], [6.17,80.46],
+                [6.13,80.50], [6.09,80.54], [6.05,80.58], [6.0328,80.2168]
+            ],
+            'Colombo-Galle': [
+                [6.9271,79.8612], [6.89,79.88], [6.85,79.89], [6.81,79.91], [6.77,79.93],
+                [6.73,79.95], [6.69,79.97], [6.65,80.00], [6.61,80.03], [6.57,80.06],
+                [6.53,80.10], [6.49,80.14], [6.45,80.18], [6.41,80.22], [6.37,80.26],
+                [6.33,80.30], [6.29,80.34], [6.25,80.38], [6.21,80.42], [6.17,80.46],
+                [6.13,80.50], [6.09,80.54], [6.05,80.58], [6.0328,80.2168]
+            ],
+            'Kandy - Nuwara Eliya': [
+                [7.2906,80.6337], [7.27,80.65], [7.24,80.67], [7.20,80.69], [7.16,80.71],
+                [7.12,80.73], [7.08,80.75], [7.04,80.77], [7.00,80.78], [6.96,80.79],
+                [6.9497,80.7891]
+            ],
+            'Kandy-Nuwara Eliya': [
+                [7.2906,80.6337], [7.27,80.65], [7.24,80.67], [7.20,80.69], [7.16,80.71],
+                [7.12,80.73], [7.08,80.75], [7.04,80.77], [7.00,80.78], [6.96,80.79],
+                [6.9497,80.7891]
+            ],
+            'Galle - Matara': [
+                [6.0328,80.2168], [6.02,80.24], [6.01,80.28], [6.00,80.32], [5.99,80.36],
+                [5.98,80.40], [5.97,80.44], [5.96,80.48], [5.95,80.52], [5.9491,80.5439]
+            ],
+            'Galle-Matara': [
+                [6.0328,80.2168], [6.02,80.24], [6.01,80.28], [6.00,80.32], [5.99,80.36],
+                [5.98,80.40], [5.97,80.44], [5.96,80.48], [5.95,80.52], [5.9491,80.5439]
+            ],
+            'Kataragama - Jaffna': [
+                [6.4167,81.3333], [6.50,81.35], [6.60,81.38], [6.70,81.42], [6.80,81.45],
+                [6.90,81.48], [7.00,81.50], [7.10,81.48], [7.20,81.45], [7.30,81.42],
+                [7.40,81.38], [7.50,81.35], [7.60,81.30], [7.70,81.25], [7.80,81.20],
+                [7.90,81.15], [8.00,81.10], [8.10,81.05], [8.20,81.00], [8.30,80.95],
+                [8.3114,80.4037], [8.40,80.45], [8.50,80.48], [8.60,80.50], [8.70,80.52],
+                [8.80,80.54], [8.90,80.56], [9.00,80.55], [9.10,80.52], [9.20,80.48],
+                [9.30,80.44], [9.40,80.40], [9.50,80.36], [9.60,80.32], [9.6615,80.0255]
+            ],
+            'Kataragama-Jaffna': [
+                [6.4167,81.3333], [6.50,81.35], [6.60,81.38], [6.70,81.42], [6.80,81.45],
+                [6.90,81.48], [7.00,81.50], [7.10,81.48], [7.20,81.45], [7.30,81.42],
+                [7.40,81.38], [7.50,81.35], [7.60,81.30], [7.70,81.25], [7.80,81.20],
+                [7.90,81.15], [8.00,81.10], [8.10,81.05], [8.20,81.00], [8.30,80.95],
+                [8.3114,80.4037], [8.40,80.45], [8.50,80.48], [8.60,80.50], [8.70,80.52],
+                [8.80,80.54], [8.90,80.56], [9.00,80.55], [9.10,80.52], [9.20,80.48],
+                [9.30,80.44], [9.40,80.40], [9.50,80.36], [9.60,80.32], [9.6615,80.0255]
+            ],
+            'Hambantota - Matara': [
+                [6.1241,81.1196], [6.10,81.09], [6.08,81.05], [6.06,81.00], [6.04,80.95],
+                [6.02,80.90], [6.00,80.85], [5.98,80.80], [5.96,80.75], [5.94,80.70],
+                [5.93,80.65], [5.92,80.60], [5.93,80.55], [5.9491,80.5439]
+            ],
+            'Hambantota-Matara': [
+                [6.1241,81.1196], [6.10,81.09], [6.08,81.05], [6.06,81.00], [6.04,80.95],
+                [6.02,80.90], [6.00,80.85], [5.98,80.80], [5.96,80.75], [5.94,80.70],
+                [5.93,80.65], [5.92,80.60], [5.93,80.55], [5.9491,80.5439]
+            ],
+            'Badulla - Ella': [
+                [6.9931,81.0553], [6.97,81.05], [6.95,81.05], [6.92,81.05], [6.90,81.05],
+                [6.88,81.05], [6.8667,81.05]
+            ],
+            'Badulla-Ella': [
+                [6.9931,81.0553], [6.97,81.05], [6.95,81.05], [6.92,81.05], [6.90,81.05],
+                [6.88,81.05], [6.8667,81.05]
+            ],
+            'Negombo - Kurunegala': [
+                [7.2092,79.8357], [7.24,79.87], [7.27,79.91], [7.30,79.95], [7.33,79.99],
+                [7.36,80.04], [7.39,80.09], [7.42,80.14], [7.45,80.19], [7.47,80.24],
+                [7.49,80.29], [7.4863,80.3623]
+            ],
+            'Negombo-Kurunegala': [
+                [7.2092,79.8357], [7.24,79.87], [7.27,79.91], [7.30,79.95], [7.33,79.99],
+                [7.36,80.04], [7.39,80.09], [7.42,80.14], [7.45,80.19], [7.47,80.24],
+                [7.49,80.29], [7.4863,80.3623]
+            ]
+        };
+        
+        function getCoordinates(cityName) {
+            for (var key in cityCoordinates) {
+                if (cityName.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(cityName.toLowerCase())) {
+                    return cityCoordinates[key];
+                }
+            }
+            return [7.8731, 80.7718];
+        }
+        
+        function getRoutePath(startPoint, endPoint, routeName) {
+            var key = routeName;
+            if (routePaths[key]) return routePaths[key];
+            
+            var combined = startPoint + ' - ' + endPoint;
+            if (routePaths[combined]) return routePaths[combined];
+            
+            var start = getCoordinates(startPoint);
+            var end = getCoordinates(endPoint);
+            return [start, end];
+        }
+        
+        var trackMap = null, busMarker = null, routeLine = null;
+        var startMarker = null, endMarker = null;
+        var currentRoutePoints = [];
+        var animationInterval = null;
+        var currentStep = 0;
+        var currentSpeed = 60;
+        var totalSteps = 0;
+        
+        function openEditModal(button) {
+            document.getElementById('edit_schedule_id').value = button.getAttribute('data-id');
+            document.getElementById('edit_route_id').value = button.getAttribute('data-route-id');
+            document.getElementById('edit_vehicle_id').value = button.getAttribute('data-vehicle-id');
+            document.getElementById('edit_driver_id').value = button.getAttribute('data-driver-id');
+            document.getElementById('edit_schedule_date').value = button.getAttribute('data-date');
+            document.getElementById('edit_departure_time').value = button.getAttribute('data-departure');
+            document.getElementById('edit_arrival_time').value = button.getAttribute('data-arrival');
+            document.getElementById('edit_status').value = button.getAttribute('data-status');
+            document.getElementById('editModalOverlay').classList.add('active');
+        }
+        
+        function closeEditModal() { document.getElementById('editModalOverlay').classList.remove('active'); }
+        function openModal() { document.getElementById('modalOverlay').classList.add('active'); }
+        function closeModal() { document.getElementById('modalOverlay').classList.remove('active'); }
+        
+        function closeTrackModal() {
+            document.getElementById('trackModalOverlay').classList.remove('active');
+            if (animationInterval) { clearInterval(animationInterval); animationInterval = null; }
+            if (trackMap) { trackMap.remove(); trackMap = null; }
+            currentStep = 0;
+        }
+        
+        function openTrackModal(button) {
+            var scheduleId = button.getAttribute('data-id');
+            var routeName = button.getAttribute('data-route-name');
+            var startPoint = button.getAttribute('data-start-point');
+            var endPoint = button.getAttribute('data-end-point');
+            var departureTime = button.getAttribute('data-departure');
+            var arrivalTime = button.getAttribute('data-arrival');
+            var distance = button.getAttribute('data-distance') || 'Unknown';
+            
+            document.getElementById('trackRouteName').textContent = routeName;
+            document.getElementById('trackStartPoint').textContent = startPoint;
+            document.getElementById('trackEndPoint').textContent = endPoint;
+            document.getElementById('trackScheduleId').textContent = '#' + scheduleId;
+            document.getElementById('trackDepartureTime').textContent = departureTime;
+            document.getElementById('trackArrivalTime').textContent = arrivalTime;
+            document.getElementById('trackDistance').textContent = distance;
+            document.getElementById('trackModalOverlay').classList.add('active');
+            
+            setTimeout(function() { initTrackMap(startPoint, endPoint, routeName); }, 200);
+        }
+        
+        function initTrackMap(startPoint, endPoint, routeName) {
+            if (trackMap) { trackMap.remove(); }
+            
+            var startCoords = getCoordinates(startPoint);
+            var endCoords = getCoordinates(endPoint);
+            currentRoutePoints = getRoutePath(startPoint, endPoint, routeName);
+            totalSteps = currentRoutePoints.length - 1;
+            currentStep = 0;
+            
+            trackMap = L.map('trackMap').setView(startCoords, 9);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(trackMap);
+            
+            routeLine = L.polyline(currentRoutePoints, { color: '#1a73e8', weight: 5, opacity: 0.9, dashArray: '5, 10' }).addTo(trackMap);
+            
+            var startIcon = L.divIcon({ html: '<div style="font-size: 36px;">🚩</div>', iconSize: [36,36], iconAnchor: [18,36] });
+            startMarker = L.marker(currentRoutePoints[0], { icon: startIcon }).addTo(trackMap)
+                .bindPopup('<b>🚩 START POINT</b><br>' + startPoint).openPopup();
+            
+            var endIcon = L.divIcon({ html: '<div style="font-size: 36px;">🏁</div>', iconSize: [36,36], iconAnchor: [18,36] });
+            endMarker = L.marker(currentRoutePoints[totalSteps], { icon: endIcon }).addTo(trackMap)
+                .bindPopup('<b>🏁 END POINT</b><br>' + endPoint);
+            
+            var busIcon = L.divIcon({ 
+                html: '<div style="font-size: 34px; background:white; border-radius:50%; padding:6px; box-shadow:0 2px 10px rgba(0,0,0,0.3); border:3px solid #1a73e8;">🚌</div>', 
+                iconSize: [50,50], iconAnchor: [25,25] 
+            });
+            busMarker = L.marker(currentRoutePoints[0], { icon: busIcon }).addTo(trackMap);
+            
+            var bounds = L.latLngBounds(currentRoutePoints);
+            trackMap.fitBounds(bounds, { padding: [50,50] });
+            L.control.scale({ metric: true, imperial: false }).addTo(trackMap);
+            
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('progressPercent').textContent = '0';
+            document.getElementById('busSpeedDisplay').textContent = '0 km/h';
+            document.getElementById('currentLocationName').textContent = startPoint;
+            document.getElementById('etaInfo').innerHTML = '';
+            
+            var speedSlider = document.getElementById('speedSlider');
+            var speedValue = document.getElementById('speedValue');
+            if (speedSlider) {
+                speedSlider.oninput = function() {
+                    currentSpeed = parseInt(this.value);
+                    speedValue.textContent = currentSpeed;
+                    document.getElementById('busSpeedDisplay').textContent = currentSpeed + ' km/h';
+                };
+            }
+        }
+        
+        function startBusAnimation() {
+            if (animationInterval) clearInterval(animationInterval);
+            if (!currentRoutePoints.length || currentStep >= totalSteps) {
+                if (currentStep >= totalSteps) resetBusPosition();
+                return;
+            }
+            
+            var stepsPerSecond = Math.max(2, Math.min(10, Math.floor(currentSpeed / 15)));
+            var stepDuration = 1000 / stepsPerSecond;
+            
+            document.getElementById('busSpeedDisplay').textContent = currentSpeed + ' km/h';
+            
+            animationInterval = setInterval(function() {
+                if (currentStep < totalSteps) {
+                    currentStep++;
+                    var progress = (currentStep / totalSteps) * 100;
+                    
+                    var newPos = currentRoutePoints[currentStep];
+                    busMarker.setLatLng(newPos);
+                    
+                    document.getElementById('progressFill').style.width = progress + '%';
+                    document.getElementById('progressPercent').textContent = Math.floor(progress);
+                    
+                    trackMap.panTo(newPos);
+                    
+                    var remainingSteps = totalSteps - currentStep;
+                    var estimatedSeconds = (remainingSteps / stepsPerSecond);
+                    if (estimatedSeconds > 0) {
+                        var minutes = Math.floor(estimatedSeconds / 60);
+                        var seconds = Math.floor(estimatedSeconds % 60);
+                        document.getElementById('etaInfo').innerHTML = '⏱️ Estimated arrival: ' + 
+                            (minutes > 0 ? minutes + ' min ' : '') + seconds + ' sec';
+                    }
+                } else {
+                    clearInterval(animationInterval);
+                    animationInterval = null;
+                    document.getElementById('busSpeedDisplay').textContent = 'Arrived!';
+                    document.getElementById('etaInfo').innerHTML = '✅ Bus has arrived at destination!';
+                    alert('🚍 Bus has arrived at ' + document.getElementById('trackEndPoint').textContent + '!');
+                }
+            }, stepDuration);
+        }
+        
+        function resetBusPosition() {
+            if (animationInterval) { clearInterval(animationInterval); animationInterval = null; }
+            if (currentRoutePoints.length > 0) {
+                currentStep = 0;
+                busMarker.setLatLng(currentRoutePoints[0]);
+                document.getElementById('progressFill').style.width = '0%';
+                document.getElementById('progressPercent').textContent = '0';
+                document.getElementById('busSpeedDisplay').textContent = '0 km/h';
+                document.getElementById('etaInfo').innerHTML = '';
+                document.getElementById('currentLocationName').textContent = 'Start';
+                trackMap.setView(currentRoutePoints[0], 10);
+            }
+        }
+        
+        function pauseBusAnimation() {
+            if (animationInterval) { 
+                clearInterval(animationInterval); 
+                animationInterval = null;
+                document.getElementById('busSpeedDisplay').textContent = 'Paused';
+            }
+        }
+        
+        function resumeBusAnimation() {
+            if (!animationInterval && currentStep < totalSteps) {
+                startBusAnimation();
+            }
+        }
+        
+        document.getElementById('modalOverlay')?.addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+        document.getElementById('editModalOverlay')?.addEventListener('click', function(e) { if (e.target === this) closeEditModal(); });
+        document.getElementById('trackModalOverlay')?.addEventListener('click', function(e) { if (e.target === this) closeTrackModal(); });
+    </script>
+</body>
+</html>

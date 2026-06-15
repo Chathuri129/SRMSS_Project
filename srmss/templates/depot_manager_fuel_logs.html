@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+
+{% block title %}Fuel Logs - Depot Manager{% endblock %}
+
+{% block sidebar_nav %}
+<div class="nav-label">Main Menu</div>
+<a href="/depot-manager/dashboard">📊 Dashboard</a>
+
+<div class="nav-label" style="margin-top: 20px;">Route Management</div>
+<a href="/depot-manager/routes">🗺️ Manage Routes</a>
+
+<div class="nav-label" style="margin-top: 20px;">Vehicle Management</div>
+<a href="/depot-manager/vehicles">🚍 Manage Vehicles</a>
+<a href="/depot-manager/assign-vehicles">🚛 Assign Vehicles</a>
+
+<div class="nav-label" style="margin-top: 20px;">Schedule Management</div>
+<a href="/depot-manager/schedules">📅 Manage Schedules</a>
+<a href="/depot-manager/assign-drivers">👨‍✈️ Assign Drivers</a>
+
+<div class="nav-label" style="margin-top: 20px;">Operations</div>
+<a href="/depot-manager/fuel-logs" class="active">⛽ Fuel Logs</a>
+<a href="/depot-manager/maintenance">🔧 Maintenance</a>
+
+<!-- <div class="nav-label" style="margin-top: 20px;">Reports</div>
+<a href="/depot-manager/reports">📈 Reports</a> -->
+
+<div class="nav-label" style="margin-top: 20px;">Account</div>
+<a href="/profile">👤 My Profile</a>
+<a href="/notifications">🔔 Notifications</a>
+{% endblock %}
+
+{% block page_title %}Fuel Logs{% endblock %}
+
+{% block content %}
+<style>
+    .btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 6px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px; color: #1e293b; }
+    .form-group input, .form-group select {
+        width: 100%; padding: 10px 14px;
+        border: 2px solid #e5e7eb; border-radius: 8px;
+        font-size: 14px; font-family: inherit;
+    }
+    .form-group input:focus, .form-group select:focus {
+        outline: none; border-color: #8b5cf6;
+        box-shadow: 0 0 0 3px rgba(139,92,246,0.1);
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .modal-overlay {
+        display: none; position: fixed; top: 0; left: 0;
+        width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+        z-index: 1000; align-items: center; justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+        background: white; border-radius: 16px; width: 90%; max-width: 600px;
+        max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .modal-header {
+        padding: 20px 24px; border-bottom: 1px solid #e5e7eb;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .modal-header h3 { font-size: 18px; font-weight: 700; }
+    .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b; }
+    .close-btn:hover { color: #ef4444; }
+    .modal-body { padding: 24px; }
+    .modal-footer {
+        padding: 16px 24px; border-top: 1px solid #e5e7eb;
+        display: flex; gap: 10px; justify-content: flex-end;
+    }
+    .btn-primary { background: #8b5cf6; color: white; }
+    .btn-primary:hover { background: #7c3aed; }
+    .btn-outline { background: white; color: #8b5cf6; border: 2px solid #8b5cf6; }
+    .receipt-link {
+        color: #8b5cf6;
+        text-decoration: none;
+        font-size: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        background: #f3e8ff;
+        border-radius: 4px;
+    }
+    .receipt-link:hover {
+        text-decoration: underline;
+        color: #7c3aed;
+        background: #e9d5ff;
+    }
+    .stat-card-small {
+        background: white;
+        padding: 15px;
+        border-radius: 12px;
+        text-align: center;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .stat-number {
+        font-size: 28px;
+        font-weight: 700;
+        color: #8b5cf6;
+    }
+    .stat-label {
+        font-size: 12px;
+        color: #64748b;
+    }
+</style>
+
+<div style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; padding: 25px 30px; border-radius: 14px; margin-bottom: 30px;">
+    <h2 style="margin-bottom: 5px;">⛽ Fuel Usage Logs</h2>
+    <p style="opacity: 0.9; font-size: 14px;">Record and track fuel consumption for all vehicles.</p>
+</div>
+
+<!-- Monthly Statistics -->
+<div class="stats-grid" style="margin-bottom: 30px;">
+    <div class="stat-card-small">
+        <div class="stat-number">{{ monthly_stats.total_logs or 0 }}</div>
+        <div class="stat-label">Fuel Logs (Month)</div>
+    </div>
+    <div class="stat-card-small">
+        <div class="stat-number">{{ "%.0f"|format(monthly_stats.total_fuel or 0) }} L</div>
+        <div class="stat-label">Total Fuel (Month)</div>
+    </div>
+    <div class="stat-card-small">
+        <div class="stat-number">Rs. {{ "%.0f"|format(monthly_stats.total_cost or 0) }}</div>
+        <div class="stat-label">Total Cost (Month)</div>
+    </div>
+    <div class="stat-card-small">
+        <div class="stat-number">Rs. {{ "%.2f"|format(monthly_stats.avg_cost or 0) }}</div>
+        <div class="stat-label">Avg Cost/Liter</div>
+    </div>
+</div>
+
+<!-- Fuel Logs Table -->
+<div class="card">
+    <div class="card-header">
+        <h3>📋 Fuel Log History</h3>
+        <button class="btn btn-primary" onclick="openAddModal()">➕ Record Fuel Usage</button>
+    </div>
+    <div class="card-body no-padding">
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <th style="padding: 12px 16px;">Date</th>
+                        <th style="padding: 12px 16px;">Vehicle</th>
+                        <th style="padding: 12px 16px;">Liters</th>
+                        <th style="padding: 12px 16px;">Cost/Liter</th>
+                        <th style="padding: 12px 16px;">Total Cost</th>
+                        <th style="padding: 12px 16px;">Odometer</th>
+                        <th style="padding: 12px 16px;">Station</th>
+                        <th style="padding: 12px 16px;">Recorded By</th>
+                        <th style="padding: 12px 16px;">Receipt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if fuel_logs %}
+                        {% for log in fuel_logs %}
+                        <tr style="border-bottom: 1px solid #e5e7eb;">
+                            <td style="padding: 12px 16px;"><strong>{{ log.fuel_date }}</strong></td>
+                            <td style="padding: 12px 16px;">
+                                {{ log.registration_number }}<br>
+                                <small style="color: #64748b;">{{ log.vehicle_code }}</small>
+                            </span>
+                            <td style="padding: 12px 16px;">{{ "%.2f"|format(log.fuel_liters|float) }} L</span>
+                            <td style="padding: 12px 16px;">Rs. {{ "%.2f"|format(log.cost_per_liter|float) }}</span>
+                            <td style="padding: 12px 16px;"><strong>Rs. {{ "%.2f"|format(log.total_cost|float) }}</strong></span>
+                            <td style="padding: 12px 16px;">{{ log.odometer_reading }} km</span>
+                            <td style="padding: 12px 16px;">{{ log.fuel_station or 'N/A' }}</span>
+                            <td style="padding: 12px 16px;">
+                                <span style="font-size: 12px;">{{ log.logged_by_name or 'Admin' }}</span>
+                            </span>
+                            <td style="padding: 12px 16px;">
+                                {% if log.receipt_path %}
+                                    <a href="{{ url_for('static', filename=log.receipt_path) }}" target="_blank" class="receipt-link">
+                                        📎 View
+                                    </a>
+                                {% else %}
+                                    <span style="color: #64748b;">No receipt</span>
+                                {% endif %}
+                            </span>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="9" style="text-align: center; padding: 50px; color: #64748b;">
+                                <div style="font-size: 48px; margin-bottom: 10px;">⛽</div>
+                                <strong>No fuel logs found</strong><br>
+                                <small>Click "Record Fuel Usage" to add your first fuel log.</small>
+                            </span
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Fuel Log Modal -->
+<div class="modal-overlay" id="addModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>⛽ Record Fuel Usage</h3>
+            <button class="close-btn" onclick="closeAddModal()">✕</button>
+        </div>
+        <form method="POST" action="/depot-manager/fuel-logs" enctype="multipart/form-data" id="fuelForm">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Vehicle *</label>
+                    <select name="vehicle_id" id="vehicle_id" required>
+                        <option value="">-- Select Vehicle --</option>
+                        {% for vehicle in vehicles %}
+                            <option value="{{ vehicle.id }}">{{ vehicle.registration_number }} ({{ vehicle.vehicle_code }}) - {{ vehicle.vehicle_type|title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Date *</label>
+                        <input type="date" name="fuel_date" id="fuel_date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Fuel Station</label>
+                        <input type="text" name="fuel_station" id="fuel_station" placeholder="e.g., Ceypetco">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Liters *</label>
+                        <input type="number" name="fuel_liters" id="fuel_liters" placeholder="e.g., 85.50" required step="0.01" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Cost per Liter (Rs.) *</label>
+                        <input type="number" name="cost_per_liter" id="cost_per_liter" placeholder="e.g., 330.00" required step="0.01" min="0">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Total Cost (Rs.) *</label>
+                        <input type="number" name="total_cost" id="total_cost" placeholder="Auto-calculated" required step="0.01" min="0" readonly style="background:#f1f5f9;">
+                    </div>
+                    <div class="form-group">
+                        <label>Odometer Reading (km) *</label>
+                        <input type="number" name="odometer_reading" id="odometer_reading" placeholder="e.g., 125500" required min="0">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Upload Receipt (PDF/JPG/PNG)</label>
+                    <input type="file" name="receipt" id="receipt" accept=".pdf,.jpg,.jpeg,.png,.gif">
+                    <small style="color: #64748b; display: block; margin-top: 5px;">
+                        📎 Max size: 5MB. Supported formats: PDF, JPG, JPEG, PNG, GIF
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeAddModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">💾 Save Fuel Log</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Set today's date as default
+    document.getElementById('fuel_date').value = new Date().toISOString().split('T')[0];
+    
+    function openAddModal() {
+        document.getElementById('addModal').classList.add('active');
+        // Reset form
+        document.getElementById('fuelForm').reset();
+        document.getElementById('fuel_date').value = new Date().toISOString().split('T')[0];
+    }
+    
+    function closeAddModal() {
+        document.getElementById('addModal').classList.remove('active');
+    }
+    
+    // Auto-calculate total cost
+    const litersInput = document.getElementById('fuel_liters');
+    const costInput = document.getElementById('cost_per_liter');
+    
+    if (litersInput && costInput) {
+        litersInput.addEventListener('input', calculateTotal);
+        costInput.addEventListener('input', calculateTotal);
+    }
+    
+    function calculateTotal() {
+        const liters = parseFloat(document.getElementById('fuel_liters').value) || 0;
+        const costPerLiter = parseFloat(document.getElementById('cost_per_liter').value) || 0;
+        const total = (liters * costPerLiter).toFixed(2);
+        document.getElementById('total_cost').value = total;
+    }
+    
+    // Close modal when clicking outside
+    document.getElementById('addModal')?.addEventListener('click', function(e) {
+        if (e.target === this) closeAddModal();
+    });
+</script>
+{% endblock %}

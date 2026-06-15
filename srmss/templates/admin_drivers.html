@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Drivers - SRMSS</title>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --dark: #1e293b;
+            --gray: #64748b;
+            --light: #f8fafc;
+            --border: #e5e7eb;
+            --white: #ffffff;
+            --danger: #ef4444;
+            --success: #16a34a;
+            --warning: #d97706;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #f1f5f9;
+            min-height: 100vh;
+            display: flex;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 260px; background: var(--dark); color: #cbd5e1;
+            min-height: 100vh; position: fixed; left: 0; top: 0; bottom: 0;
+            z-index: 100; display: flex; flex-direction: column;
+        }
+        
+        .sidebar-brand {
+            padding: 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; gap: 12px;
+        }
+        
+        .sidebar-brand .icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            border-radius: 10px; display: flex; align-items: center;
+            justify-content: center; font-size: 20px;
+        }
+        
+        .sidebar-brand h3 { font-size: 16px; font-weight: 700; color: white; }
+        .sidebar-brand span { font-size: 11px; color: #fbbf24; display: block; font-weight: 600; }
+        
+        .sidebar-nav { flex: 1; padding: 20px 15px; overflow-y: auto; }
+        
+        .sidebar-nav .nav-label {
+            font-size: 10px; text-transform: uppercase; letter-spacing: 2px;
+            color: #64748b; margin-bottom: 10px; padding: 0 10px; font-weight: 700;
+        }
+        
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 15px; color: #94a3b8; text-decoration: none;
+            border-radius: 8px; font-size: 14px; font-weight: 500;
+            transition: all 0.2s; margin-bottom: 2px;
+        }
+        
+        .sidebar-nav a:hover { background: rgba(255,255,255,0.05); color: white; }
+        .sidebar-nav a.active { background: rgba(251,191,36,0.15); color: #fbbf24; font-weight: 600; }
+        
+        .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+        
+        .user-info { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        
+        .user-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 14px; color: #1e293b;
+        }
+        
+        .user-details { flex: 1; }
+        .user-details .name { font-weight: 600; font-size: 13px; color: white; }
+        .user-details .role { font-size: 11px; color: #fbbf24; font-weight: 600; }
+        
+        .btn-logout {
+            display: block; width: 100%; padding: 8px;
+            background: rgba(239,68,68,0.1); color: #ef4444;
+            border: 1px solid rgba(239,68,68,0.3); border-radius: 6px;
+            text-align: center; text-decoration: none;
+            font-size: 13px; font-weight: 500; transition: all 0.2s;
+        }
+        .btn-logout:hover { background: rgba(239,68,68,0.2); }
+        
+        /* Main Content */
+        .main-content { margin-left: 260px; flex: 1; }
+        
+        .top-bar {
+            background: white; padding: 16px 30px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 50;
+        }
+        
+        .top-bar h2 { font-size: 20px; font-weight: 700; color: var(--dark); }
+        
+        .content-area { padding: 30px; }
+        
+        /* Flash Messages */
+        .flash-message {
+            padding: 12px 15px; border-radius: 8px; margin-bottom: 20px;
+            font-size: 14px; font-weight: 500;
+        }
+        .flash-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        
+        /* Buttons */
+        .btn {
+            padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600;
+            border: none; cursor: pointer; transition: all 0.2s;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #1557b0; transform: translateY(-1px); }
+        .btn-outline { background: white; color: var(--primary); border: 2px solid var(--primary); }
+        .btn-outline:hover { background: var(--primary); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #dc2626; transform: translateY(-1px); }
+        .btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 6px; }
+        .btn-warning { background: #d97706; color: white; }
+        .btn-warning:hover { background: #b45309; transform: translateY(-1px); }
+        
+        /* Modal */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+            z-index: 1000; align-items: center; justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        
+        .modal {
+            background: white; border-radius: 16px; width: 90%; max-width: 500px;
+            max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            padding: 20px 24px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .modal-header h3 { font-size: 18px; font-weight: 700; }
+        
+        .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--gray); }
+        .close-btn:hover { color: var(--danger); }
+        
+        .modal-body { padding: 24px; }
+        
+        .modal-footer {
+            padding: 16px 24px; border-top: 1px solid var(--border);
+            display: flex; gap: 10px; justify-content: flex-end;
+        }
+        
+        /* Form */
+        .form-group { margin-bottom: 16px; }
+        
+        .form-group label {
+            display: block; margin-bottom: 6px; color: var(--dark);
+            font-weight: 600; font-size: 13px;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%; padding: 10px 14px;
+            border: 2px solid var(--border); border-radius: 8px;
+            font-size: 14px; transition: all 0.3s;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none; border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(26,115,232,0.1);
+        }
+        
+        .form-group input:read-only {
+            background: #f1f5f9;
+            cursor: not-allowed;
+        }
+        
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        
+        /* Table */
+        .card {
+            background: white; border-radius: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden;
+        }
+        
+        table { width: 100%; border-collapse: collapse; }
+        
+        th {
+            background: #f8fafc; padding: 12px 16px; text-align: left;
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.5px; color: var(--gray);
+            border-bottom: 2px solid var(--border);
+        }
+        
+        td {
+            padding: 12px 16px; border-bottom: 1px solid var(--border);
+            font-size: 13px; color: var(--dark);
+        }
+        
+        tr:hover { background: #f8fafc; }
+        
+        .badge {
+            padding: 4px 12px; border-radius: 20px;
+            font-size: 11px; font-weight: 700; display: inline-block;
+        }
+        .badge-driver { background: #dbeafe; color: #1e40af; }
+        .badge-active { background: #dcfce7; color: #166534; }
+        .badge-inactive { background: #fee2e2; color: #991b1b; }
+        
+        @media (max-width: 768px) {
+            .sidebar { width: 70px; }
+            .sidebar-brand h3, .sidebar-brand span,
+            .sidebar-nav a span, .sidebar-nav .nav-label,
+            .user-details { display: none; }
+            .sidebar-nav a { justify-content: center; padding: 12px; }
+            .main-content { margin-left: 70px; }
+            .form-row { grid-template-columns: 1fr; }
+            table, thead, tbody, th, td, tr { display: block; }
+            th { display: none; }
+            td { display: block; padding: 8px 16px; border-bottom: none; }
+            td::before { content: attr(data-label); font-weight: 600; display: inline-block; width: 120px; }
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <div class="icon">{% if session.get('role') == 'admin' %}👑{% else %}👁️{% endif %}</div>
+            <div>
+                <h3>SRMSS</h3>
+                <span>{% if session.get('role') == 'admin' %}Admin Panel{% else %}Supervisor Panel{% endif %}</span>
+            </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <div class="nav-label">Main Menu</div>
+            <a href="{% if session.get('role') == 'admin' %}/admin/dashboard{% else %}/supervisor/dashboard{% endif %}">📊 Dashboard</a>
+            
+            <div class="nav-label" style="margin-top: 20px;">Management</div>
+            <a href="/admin/routes">🗺️ Routes</a>
+            <a href="/admin/vehicles">🚍 Vehicles</a>
+            <a href="/admin/drivers" class="active">👨‍✈️ Drivers</a>
+            <a href="/admin/schedules">📅 Schedules</a>
+            
+            <div class="nav-label" style="margin-top: 20px;">Operations</div>
+            <a href="/admin/fuel-logs">⛽ Fuel Logs</a>
+            <a href="/admin/maintenance">🔧 Maintenance</a>
+            
+            {% if session.get('role') == 'admin' %}
+            <div class="nav-label" style="margin-top: 20px;">System</div>
+            <a href="/admin/users">👥 Users</a>
+            <a href="/admin/reports">📈 Reports</a>
+            <a href="/admin/settings">⚙️ Settings</a>
+            {% else %}
+            <div class="nav-label" style="margin-top: 20px;">Reports</div>
+            <a href="/supervisor/reports">📈 View Reports</a>
+            {% endif %}
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">{{ session.get('first_name', 'A')[0] }}{{ session.get('last_name', 'U')[0] }}</div>
+                <div class="user-details">
+                    <div class="name">{{ session.get('first_name', 'Admin') }} {{ session.get('last_name', 'User') }}</div>
+                    <div class="role">{{ session.get('role', 'Administrator')|title }}</div>
+                </div>
+            </div>
+            <a href="/logout" class="btn-logout">🚪 Logout</a>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="top-bar">
+            <h2>👨‍✈️ Driver Management</h2>
+            {% if session.get('role') == 'admin' %}
+            <button class="btn btn-primary" onclick="openModal()">➕ Add New Driver</button>
+            {% else %}
+            <span style="color: var(--gray);">👁️ View Only Mode</span>
+            {% endif %}
+        </div>
+        
+        <div class="content-area">
+            
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <!-- Drivers Table -->
+            <div class="card">
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Status</th>
+                                <th>Registered</th>
+                                {% if session.get('role') == 'admin' %}
+                                <th>Actions</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if drivers %}
+                                {% for driver in drivers %}
+                                <tr>
+                                    <td data-label="ID"><strong>#{{ driver.id }}</strong></td>
+                                    <td data-label="Name">{{ driver.first_name }} {{ driver.last_name }}</span>
+                                    <td data-label="Username">@{{ driver.username }}</span>
+                                    <td data-label="Email">{{ driver.email }}</span>
+                                    <td data-label="Phone">{{ driver.phone or 'N/A' }}</span>
+                                    <td data-label="Status">
+                                        {% if driver.is_active == 1 %}
+                                            <span class="badge badge-active">✅ Active</span>
+                                        {% else %}
+                                            <span class="badge badge-inactive">❌ Inactive</span>
+                                        {% endif %}
+                                    </span>
+                                    <td data-label="Registered">{{ driver.created_at.strftime('%Y-%m-%d') if driver.created_at else 'N/A' }}</span>
+                                    {% if session.get('role') == 'admin' %}
+                                    <td data-label="Actions">
+                                        <button class="btn btn-primary btn-sm"
+                                                data-id="{{ driver.id }}"
+                                                data-firstname="{{ driver.first_name }}"
+                                                data-lastname="{{ driver.last_name }}"
+                                                data-username="{{ driver.username }}"
+                                                data-email="{{ driver.email }}"
+                                                data-phone="{{ driver.phone or '' }}"
+                                                data-status="{{ driver.is_active }}"
+                                                onclick="openEditModal(this)"
+                                                style="margin-right: 5px;">✏️ Edit</button>
+                                        
+                                        <button class="btn btn-warning btn-sm"
+                                                data-id="{{ driver.id }}"
+                                                data-username="{{ driver.username }}"
+                                                onclick="openResetPasswordModal(this)"
+                                                style="margin-right: 5px;">🔑 Reset Pwd</button>
+                                        
+                                        <form method="POST" action="/admin/drivers/delete" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete driver {{ driver.first_name }} {{ driver.last_name }}?');">
+                                            <input type="hidden" name="user_id" value="{{ driver.id }}">
+                                            <button type="submit" class="btn btn-danger btn-sm">🗑️ Delete</button>
+                                        </form>
+                                    </span>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="{% if session.get('role') == 'admin' %}8{% else %}7{% endif %}" style="text-align: center; padding: 40px; color: var(--gray);">
+                                        No drivers found.
+                                    </span
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+    {% if session.get('role') == 'admin' %}
+    <!-- Add Driver Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>👨‍✈️ Register New Driver</h3>
+                <button class="close-btn" onclick="closeModal()">✕</button>
+            </div>
+            <form method="POST" action="/admin/drivers">
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>First Name *</label>
+                            <input type="text" name="first_name" placeholder="Enter first name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Last Name *</label>
+                            <input type="text" name="last_name" placeholder="Enter last name" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Username *</label>
+                        <input type="text" name="username" placeholder="Choose a username" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Email *</label>
+                        <input type="email" name="email" placeholder="driver@example.com" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Phone Number</label>
+                        <input type="tel" name="phone" placeholder="Enter phone number">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Password *</label>
+                        <input type="password" name="password" placeholder="Min 6 characters" required minlength="6">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">💾 Save Driver</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Edit Driver Modal -->
+    <div class="modal-overlay" id="editModalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>✏️ Edit Driver</h3>
+                <button class="close-btn" onclick="closeEditModal()">✕</button>
+            </div>
+            <form method="POST" action="/admin/drivers/edit" id="editDriverForm">
+                <input type="hidden" name="driver_id" id="edit_driver_id">
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>First Name *</label>
+                            <input type="text" name="first_name" id="edit_first_name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Last Name *</label>
+                            <input type="text" name="last_name" id="edit_last_name" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" name="username" id="edit_username" readonly>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" name="email" id="edit_email" readonly>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Phone Number</label>
+                        <input type="tel" name="phone" id="edit_phone" placeholder="Enter phone number">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select name="is_active" id="edit_status">
+                            <option value="1">Active</option>
+                            <option value="0">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">💾 Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Reset Password Modal -->
+    <div class="modal-overlay" id="resetPwdModalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>🔑 Reset Driver Password</h3>
+                <button class="close-btn" onclick="closeResetPwdModal()">✕</button>
+            </div>
+            <form method="POST" action="/admin/drivers/reset-password" id="resetPwdForm">
+                <input type="hidden" name="driver_id" id="reset_driver_id">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Driver</label>
+                        <input type="text" id="reset_driver_name" readonly style="background:#f1f5f9;">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>New Password *</label>
+                        <input type="password" name="new_password" id="new_password" placeholder="Enter new password" required minlength="6">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Confirm Password *</label>
+                        <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirm new password" required minlength="6">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeResetPwdModal()">Cancel</button>
+                    <button type="submit" class="btn btn-warning">🔑 Reset Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+    
+    <script>
+        function openModal() {
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+        
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+        
+        function openEditModal(button) {
+            document.getElementById('edit_driver_id').value = button.getAttribute('data-id');
+            document.getElementById('edit_first_name').value = button.getAttribute('data-firstname');
+            document.getElementById('edit_last_name').value = button.getAttribute('data-lastname');
+            document.getElementById('edit_username').value = button.getAttribute('data-username');
+            document.getElementById('edit_email').value = button.getAttribute('data-email');
+            document.getElementById('edit_phone').value = button.getAttribute('data-phone') || '';
+            document.getElementById('edit_status').value = button.getAttribute('data-status');
+            document.getElementById('editModalOverlay').classList.add('active');
+        }
+        
+        function closeEditModal() {
+            document.getElementById('editModalOverlay').classList.remove('active');
+        }
+        
+        function openResetPasswordModal(button) {
+            document.getElementById('reset_driver_id').value = button.getAttribute('data-id');
+            document.getElementById('reset_driver_name').value = button.getAttribute('data-username');
+            document.getElementById('resetPwdModalOverlay').classList.add('active');
+        }
+        
+        function closeResetPwdModal() {
+            document.getElementById('resetPwdModalOverlay').classList.remove('active');
+            document.getElementById('resetPwdForm').reset();
+        }
+        
+        // Password confirmation validation
+        document.getElementById('resetPwdForm')?.addEventListener('submit', function(e) {
+            var newPwd = document.getElementById('new_password').value;
+            var confirmPwd = document.getElementById('confirm_password').value;
+            if (newPwd !== confirmPwd) {
+                e.preventDefault();
+                alert('Passwords do not match!');
+            } else if (newPwd.length < 6) {
+                e.preventDefault();
+                alert('Password must be at least 6 characters!');
+            }
+        });
+        
+        // Close modals when clicking outside
+        document.getElementById('modalOverlay')?.addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+        
+        document.getElementById('editModalOverlay')?.addEventListener('click', function(e) {
+            if (e.target === this) closeEditModal();
+        });
+        
+        document.getElementById('resetPwdModalOverlay')?.addEventListener('click', function(e) {
+            if (e.target === this) closeResetPwdModal();
+        });
+    </script>
+    
+</body>
+</html>

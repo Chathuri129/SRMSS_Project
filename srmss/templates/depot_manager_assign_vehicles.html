@@ -1,0 +1,421 @@
+{% extends "base.html" %}
+
+{% block title %}Assign Vehicles - Depot Manager{% endblock %}
+
+{% block sidebar_nav %}
+<div class="nav-label">Main Menu</div>
+<a href="/depot-manager/dashboard">📊 Dashboard</a>
+
+<div class="nav-label" style="margin-top: 20px;">Route Management</div>
+<a href="/depot-manager/routes">🗺️ Manage Routes</a>
+
+<div class="nav-label" style="margin-top: 20px;">Vehicle Management</div>
+<a href="/depot-manager/vehicles">🚍 Manage Vehicles</a>
+<a href="/depot-manager/assign-vehicles" class="active">🚛 Assign Vehicles</a>
+
+<div class="nav-label" style="margin-top: 20px;">Schedule Management</div>
+<a href="/depot-manager/schedules">📅 Manage Schedules</a>
+<a href="/depot-manager/assign-drivers">👨‍✈️ Assign Drivers</a>
+
+<div class="nav-label" style="margin-top: 20px;">Operations</div>
+<a href="/depot-manager/fuel-logs">⛽ Fuel Logs</a>
+<a href="/depot-manager/maintenance">🔧 Maintenance</a>
+
+<!-- <div class="nav-label" style="margin-top: 20px;">Reports</div>
+<a href="/depot-manager/reports">📈 Reports</a> -->
+
+<div class="nav-label" style="margin-top: 20px;">Account</div>
+<a href="/profile">👤 My Profile</a>
+<a href="/notifications">🔔 Notifications</a>
+{% endblock %}
+
+{% block page_title %}Assign Vehicles to Schedules{% endblock %}
+
+{% block content %}
+<style>
+    .btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 6px; }
+    .badge-assigned { background: #dcfce7; color: #166534; }
+    .badge-unassigned { background: #fee2e2; color: #991b1b; }
+    .badge-upcoming { background: #dbeafe; color: #1e40af; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px; color: #1e293b; }
+    .form-group select {
+        width: 100%; padding: 10px 14px;
+        border: 2px solid #e5e7eb; border-radius: 8px;
+        font-size: 14px; font-family: inherit;
+    }
+    .form-group select:focus {
+        outline: none; border-color: #8b5cf6;
+        box-shadow: 0 0 0 3px rgba(139,92,246,0.1);
+    }
+    .modal-overlay {
+        display: none; position: fixed; top: 0; left: 0;
+        width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+        z-index: 1000; align-items: center; justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+        background: white; border-radius: 16px; width: 90%; max-width: 500px;
+        max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .modal-header {
+        padding: 20px 24px; border-bottom: 1px solid #e5e7eb;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .modal-header h3 { font-size: 18px; font-weight: 700; }
+    .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b; }
+    .close-btn:hover { color: #ef4444; }
+    .modal-body { padding: 24px; }
+    .modal-footer {
+        padding: 16px 24px; border-top: 1px solid #e5e7eb;
+        display: flex; gap: 10px; justify-content: flex-end;
+    }
+    .btn-primary { background: #8b5cf6; color: white; }
+    .btn-primary:hover { background: #7c3aed; }
+    .btn-outline { background: white; color: #8b5cf6; border: 2px solid #8b5cf6; }
+    .btn-success { background: #16a34a; color: white; }
+    .btn-success:hover { background: #15803d; }
+    .schedule-checkbox { width: 20px; height: 20px; cursor: pointer; }
+    .bulk-bar {
+        background: #f8fafc;
+        padding: 15px 20px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    .vehicle-card {
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 15px;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-bottom: 10px;
+    }
+    .vehicle-card:hover {
+        border-color: #8b5cf6;
+        background: #faf5ff;
+    }
+    .vehicle-card.selected {
+        border-color: #8b5cf6;
+        background: #f3e8ff;
+    }
+    .vehicle-name { font-weight: 700; color: #1e293b; }
+    .vehicle-details { font-size: 12px; color: #64748b; margin-top: 5px; }
+    .status-available { color: #16a34a; }
+    .status-in-use { color: #1e40af; }
+    .status-maintenance { color: #92400e; }
+</style>
+
+<div style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; padding: 25px 30px; border-radius: 14px; margin-bottom: 30px;">
+    <h2 style="margin-bottom: 5px;">🚛 Vehicle Assignment</h2>
+    <p style="opacity: 0.9; font-size: 14px;">Assign vehicles to bus routes and schedules.</p>
+</div>
+
+<!-- Statistics Cards -->
+<div class="stats-grid" style="margin-bottom: 30px;">
+    <div class="stat-card">
+        <div class="stat-icon">📅</div>
+        <h3>{{ stats.total_schedules or 0 }}</h3>
+        <p>Upcoming Schedules</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">⚠️</div>
+        <h3>{{ stats.unassigned_schedules or 0 }}</h3>
+        <p>Unassigned Schedules</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">🚍</div>
+        <h3>{{ vehicle_stats.total or 0 }}</h3>
+        <p>Total Vehicles</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <h3>{{ vehicle_stats.available or 0 }}</h3>
+        <p>Available Vehicles</p>
+    </div>
+</div>
+
+<!-- Bulk Assignment Bar -->
+<div class="bulk-bar">
+    <strong>Bulk Assign:</strong>
+    <select id="bulkVehicleSelect" style="width: auto; margin: 0; padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px;">
+        <option value="">Select Vehicle</option>
+        {% for vehicle in vehicles %}
+        <option value="{{ vehicle.id }}">{{ vehicle.vehicle_code }} ({{ vehicle.registration_number }}) - {{ vehicle.vehicle_type|title }}</option>
+        {% endfor %}
+    </select>
+    <button class="btn btn-success" onclick="bulkAssign()">📦 Assign Selected Schedules</button>
+    <button class="btn btn-outline" onclick="toggleAllSchedules()">☑️ Select All</button>
+    <span id="selectedCount" style="color: #64748b; font-size: 13px;">0 schedules selected</span>
+</div>
+
+<!-- Schedules and Vehicles Side by Side -->
+<div style="display: grid; grid-template-columns: 1fr 300px; gap: 25px;">
+    <!-- Schedules Table -->
+    <div class="card">
+        <div class="card-header">
+            <h3>📋 Schedules Needing Vehicles</h3>
+        </div>
+        <div class="card-body no-padding">
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th style="padding: 12px 16px; width: 40px;">
+                                <input type="checkbox" id="selectAllCheckbox" onchange="toggleAllSchedules()">
+                            </th>
+                            <th style="padding: 12px 16px;">Date</th>
+                            <th style="padding: 12px 16px;">Route</th>
+                            <th style="padding: 12px 16px;">Time</th>
+                            <th style="padding: 12px 16px;">Driver</th>
+                            <th style="padding: 12px 16px;">Current Vehicle</th>
+                            <th style="padding: 12px 16px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if schedules %}
+                            {% for schedule in schedules %}
+                            <tr style="border-bottom: 1px solid #e5e7eb;">
+                                <td style="padding: 12px 16px; text-align: center;">
+                                    <input type="checkbox" class="schedule-checkbox" value="{{ schedule.id }}" onchange="updateSelectedCount()">
+                                </td>
+                                <td style="padding: 12px 16px;">
+                                    <strong>{{ schedule.schedule_date }}</strong>
+                                    {% if schedule.schedule_date == now.strftime('%Y-%m-%d') %}
+                                        <span class="badge-upcoming" style="padding: 2px 8px; font-size: 10px; border-radius: 12px;">Today</span>
+                                    {% endif %}
+                                </td>
+                                <td style="padding: 12px 16px;">
+                                    {{ schedule.route_name }}<br>
+                                    <small style="color: #64748b;">{{ schedule.start_point }} → {{ schedule.end_point }}</small>
+                                </td>
+                                <td style="padding: 12px 16px;">
+                                    {{ schedule.departure_time }} - {{ schedule.arrival_time }}
+                                </td>
+                                <td style="padding: 12px 16px;">
+                                    {{ schedule.driver_name }}
+                                </td>
+                                <td style="padding: 12px 16px;">
+                                    {% if schedule.current_vehicle_number %}
+                                        <span class="badge-assigned" style="padding: 4px 12px; border-radius: 20px;">✅ {{ schedule.current_vehicle_code }}</span>
+                                    {% else %}
+                                        <span class="badge-unassigned" style="padding: 4px 12px; border-radius: 20px;">⚠️ Not Assigned</span>
+                                    {% endif %}
+                                </td>
+                                <td style="padding: 12px 16px;">
+                                    <button class="btn btn-primary btn-sm" 
+                                        data-id="{{ schedule.id }}"
+                                        data-route="{{ schedule.route_name }}"
+                                        data-date="{{ schedule.schedule_date }}"
+                                        data-time="{{ schedule.departure_time }}"
+                                        onclick="openAssignModal(this)">🚛 Assign Vehicle</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 50px; color: #64748b;">
+                                    <div style="font-size: 48px; margin-bottom: 10px;">🚛</div>
+                                    <strong>No schedules found</strong><br>
+                                    <small>All schedules have vehicles assigned or no upcoming schedules.</small>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Available Vehicles Sidebar -->
+    <div class="card">
+        <div class="card-header">
+            <h3>🚍 Available Vehicles</h3>
+        </div>
+        <div class="card-body">
+            {% if vehicles %}
+                {% for vehicle in vehicles %}
+                <div class="vehicle-card" data-vehicle-id="{{ vehicle.id }}" data-vehicle-name="{{ vehicle.vehicle_code }}" onclick="selectVehicle(this)">
+                    <div class="vehicle-name">🚍 {{ vehicle.vehicle_code }}</div>
+                    <div class="vehicle-details">
+                        {{ vehicle.registration_number }} | {{ vehicle.vehicle_type|title }}<br>
+                        🪑 {{ vehicle.seating_capacity }} seats | ⛽ {{ vehicle.fuel_type|title }}
+                        <br>
+                        {% if vehicle.status == 'available' %}
+                            <span class="status-available">Status: Available</span>
+                        {% elif vehicle.status == 'in_use' %}
+                            <span class="status-in-use">Status: In Use</span>
+                        {% else %}
+                            <span class="status-maintenance">Status: Maintenance</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p style="text-align: center; color: #64748b; padding: 20px;">No vehicles available</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Assign Vehicle Modal -->
+<div class="modal-overlay" id="assignModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>🚛 Assign Vehicle to Schedule</h3>
+            <button class="close-btn" onclick="closeAssignModal()">✕</button>
+        </div>
+        <form method="POST" action="/depot-manager/assign-vehicles" id="assignForm">
+            <input type="hidden" name="action" value="assign_to_schedule">
+            <input type="hidden" name="schedule_id" id="assign_schedule_id">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Schedule Details</label>
+                    <div style="background: #f8fafc; padding: 12px; border-radius: 8px;">
+                        <div><strong>Route:</strong> <span id="modal_route_name"></span></div>
+                        <div><strong>Date:</strong> <span id="modal_schedule_date"></span></div>
+                        <div><strong>Time:</strong> <span id="modal_departure_time"></span></div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Select Vehicle *</label>
+                    <select name="vehicle_id" id="modal_vehicle_select" required>
+                        <option value="">-- Select Vehicle --</option>
+                        {% for vehicle in vehicles %}
+                        <option value="{{ vehicle.id }}">{{ vehicle.vehicle_code }} ({{ vehicle.registration_number }}) - {{ vehicle.vehicle_type|title }} ({{ vehicle.seating_capacity }} seats)</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeAssignModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">✅ Assign Vehicle</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Bulk Assign Form -->
+<form method="POST" action="/depot-manager/assign-vehicles" id="bulkAssignForm" style="display: none;">
+    <input type="hidden" name="action" value="bulk_assign">
+    <input type="hidden" name="vehicle_id" id="bulk_vehicle_id">
+    <div id="bulk_schedule_ids"></div>
+</form>
+
+<script>
+    var selectedScheduleIds = [];
+    var selectedVehicleId = null;
+    
+    function openAssignModal(button) {
+        var scheduleId = button.getAttribute('data-id');
+        var routeName = button.getAttribute('data-route');
+        var scheduleDate = button.getAttribute('data-date');
+        var departureTime = button.getAttribute('data-time');
+        
+        document.getElementById('assign_schedule_id').value = scheduleId;
+        document.getElementById('modal_route_name').textContent = routeName;
+        document.getElementById('modal_schedule_date').textContent = scheduleDate;
+        document.getElementById('modal_departure_time').textContent = departureTime;
+        
+        // Preselect vehicle if one was selected from sidebar
+        if (selectedVehicleId) {
+            document.getElementById('modal_vehicle_select').value = selectedVehicleId;
+        }
+        
+        document.getElementById('assignModal').classList.add('active');
+    }
+    
+    function closeAssignModal() {
+        document.getElementById('assignModal').classList.remove('active');
+        document.getElementById('assignForm').reset();
+        selectedVehicleId = null;
+        // Remove highlight from vehicle cards
+        var cards = document.querySelectorAll('.vehicle-card');
+        for (var i = 0; i < cards.length; i++) {
+            cards[i].classList.remove('selected');
+        }
+    }
+    
+    function selectVehicle(cardElement) {
+        var vehicleId = cardElement.getAttribute('data-vehicle-id');
+        
+        selectedVehicleId = vehicleId;
+        
+        // Highlight selected vehicle
+        var cards = document.querySelectorAll('.vehicle-card');
+        for (var i = 0; i < cards.length; i++) {
+            cards[i].classList.remove('selected');
+        }
+        cardElement.classList.add('selected');
+        
+        // If modal is open, update the dropdown
+        var modalVehicleSelect = document.getElementById('modal_vehicle_select');
+        if (modalVehicleSelect && document.getElementById('assignModal').classList.contains('active')) {
+            modalVehicleSelect.value = vehicleId;
+        }
+    }
+    
+    function toggleAllSchedules() {
+        var selectAll = document.getElementById('selectAllCheckbox');
+        var checkboxes = document.querySelectorAll('.schedule-checkbox');
+        for (var i = 0; i < checkboxes.length; i++) {
+            checkboxes[i].checked = selectAll.checked;
+        }
+        updateSelectedCount();
+    }
+    
+    function updateSelectedCount() {
+        var checkboxes = document.querySelectorAll('.schedule-checkbox:checked');
+        selectedScheduleIds = [];
+        for (var i = 0; i < checkboxes.length; i++) {
+            selectedScheduleIds.push(checkboxes[i].value);
+        }
+        document.getElementById('selectedCount').textContent = selectedScheduleIds.length + ' schedule(s) selected';
+    }
+    
+    function bulkAssign() {
+        var vehicleId = document.getElementById('bulkVehicleSelect').value;
+        if (selectedScheduleIds.length === 0) {
+            alert('Please select at least one schedule to assign.');
+            return;
+        }
+        if (!vehicleId) {
+            alert('Please select a vehicle to assign.');
+            return;
+        }
+        
+        if (confirm('Assign ' + selectedScheduleIds.length + ' schedule(s) to the selected vehicle?')) {
+            var bulkForm = document.getElementById('bulkAssignForm');
+            document.getElementById('bulk_vehicle_id').value = vehicleId;
+            
+            var scheduleIdsContainer = document.getElementById('bulk_schedule_ids');
+            scheduleIdsContainer.innerHTML = '';
+            for (var i = 0; i < selectedScheduleIds.length; i++) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'schedule_ids';
+                input.value = selectedScheduleIds[i];
+                scheduleIdsContainer.appendChild(input);
+            }
+            
+            bulkForm.submit();
+        }
+    }
+    
+    // Close modals when clicking outside
+    var assignModal = document.getElementById('assignModal');
+    if (assignModal) {
+        assignModal.addEventListener('click', function(e) {
+            if (e.target === this) closeAssignModal();
+        });
+    }
+    
+    // Initialize
+    updateSelectedCount();
+</script>
+{% endblock %}

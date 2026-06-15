@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SRMSS - Smart Route Management & Scheduling System</title>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --primary-dark: #1557b0;
+            --secondary: #0d47a1;
+            --dark: #1e293b;
+            --gray: #64748b;
+            --light: #f8fafc;
+            --white: #ffffff;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            overflow-x: hidden;
+        }
+        
+        /* Navbar */
+        .navbar {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            padding: 16px 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        
+        .navbar.scrolled {
+            padding: 12px 60px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+        
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+        
+        .brand-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--primary), #4dabf7);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+        
+        .brand-text {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--dark);
+        }
+        
+        .brand-text span {
+            color: var(--primary);
+        }
+        
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: var(--gray);
+            font-weight: 500;
+            font-size: 14px;
+            transition: color 0.3s;
+            position: relative;
+        }
+        
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+        
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: width 0.3s;
+        }
+        
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+        
+        .btn-nav {
+            background: var(--primary);
+            color: white !important;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-nav:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(26,115,232,0.3);
+        }
+        
+        .btn-nav::after {
+            display: none;
+        }
+        
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 50%, #dbeafe 100%);
+            padding: 160px 60px 100px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -30%;
+            right: -10%;
+            width: 700px;
+            height: 700px;
+            background: radial-gradient(circle, rgba(26,115,232,0.06) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -20%;
+            left: -5%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(13,71,161,0.04) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        
+        .hero-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 60px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .hero-content {
+            flex: 1;
+        }
+        
+        .hero-badge {
+            display: inline-block;
+            background: rgba(26,115,232,0.1);
+            color: var(--primary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        
+        .hero-title {
+            font-size: 48px;
+            font-weight: 800;
+            line-height: 1.2;
+            color: var(--dark);
+            margin-bottom: 20px;
+        }
+        
+        .hero-title .highlight {
+            background: linear-gradient(135deg, var(--primary), #4dabf7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .hero-text {
+            font-size: 17px;
+            color: var(--gray);
+            margin-bottom: 35px;
+            line-height: 1.7;
+            max-width: 500px;
+        }
+        
+        .hero-buttons {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            padding: 14px 30px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(26,115,232,0.3);
+        }
+        
+        .btn-outline {
+            background: white;
+            color: var(--primary);
+            padding: 14px 30px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 15px;
+            border: 2px solid var(--primary);
+            transition: all 0.3s;
+        }
+        
+        .btn-outline:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        .hero-visual {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+        }
+        
+        .hero-visual svg {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        /* Stats Bar */
+        .stats-bar {
+            background: white;
+            padding: 30px 60px;
+            display: flex;
+            justify-content: space-around;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 36px;
+            font-weight: 800;
+            color: var(--dark);
+        }
+        
+        .stat-label {
+            font-size: 13px;
+            color: var(--gray);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 5px;
+        }
+        
+        /* Features Section */
+        .section {
+            padding: 80px 60px;
+        }
+        
+        .section-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        
+        .section-label {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--primary);
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .section-title {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 15px;
+        }
+        
+        .section-subtitle {
+            font-size: 16px;
+            color: var(--gray);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .feature-card {
+            background: white;
+            padding: 35px 30px;
+            border-radius: 16px;
+            border: 1px solid #e5e7eb;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.08);
+            border-color: var(--primary);
+        }
+        
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+        
+        .feature-icon.route { background: #dbeafe; }
+        .feature-icon.schedule { background: #dcfce7; }
+        .feature-icon.fleet { background: #fef3c7; }
+        .feature-icon.driver { background: #fce7f3; }
+        .feature-icon.fuel { background: #e0e7ff; }
+        .feature-icon.report { background: #cffafe; }
+        
+        .feature-card h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 8px;
+        }
+        
+        .feature-card p {
+            font-size: 14px;
+            color: var(--gray);
+            line-height: 1.6;
+        }
+        
+        .feature-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 14px;
+            margin-top: 15px;
+            text-decoration: none;
+        }
+        
+        .feature-link:hover {
+            text-decoration: underline;
+        }
+        
+        /* CTA Section */
+        .cta-section {
+            background: linear-gradient(135deg, var(--dark), #334155);
+            padding: 80px 60px;
+            text-align: center;
+            color: white;
+        }
+        
+        .cta-section h2 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+        
+        .cta-section p {
+            font-size: 17px;
+            color: #cbd5e1;
+            margin-bottom: 30px;
+        }
+        
+        .btn-white {
+            background: white;
+            color: var(--primary);
+            padding: 14px 35px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 15px;
+            transition: all 0.3s;
+            display: inline-block;
+        }
+        
+        .btn-white:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        /* Footer */
+        .footer {
+            background: #0f172a;
+            color: #94a3b8;
+            padding: 60px 60px 30px;
+        }
+        
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .footer h4 {
+            color: white;
+            font-weight: 600;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+        
+        .footer p {
+            font-size: 14px;
+            line-height: 1.7;
+        }
+        
+        .footer a {
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 14px;
+            display: block;
+            padding: 4px 0;
+            transition: color 0.3s;
+        }
+        
+        .footer a:hover {
+            color: white;
+        }
+        
+        .footer-bottom {
+            border-top: 1px solid #1e293b;
+            margin-top: 40px;
+            padding-top: 20px;
+            text-align: center;
+            font-size: 13px;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        /* Responsive */
+        @media (max-width: 968px) {
+            .hero-container {
+                flex-direction: column;
+                text-align: center;
+            }
+            .hero-text {
+                margin: 0 auto 30px;
+            }
+            .hero-buttons {
+                justify-content: center;
+            }
+            .footer-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .navbar {
+                padding: 16px 20px;
+            }
+            .section {
+                padding: 50px 20px;
+            }
+            .stats-bar {
+                flex-wrap: wrap;
+                gap: 20px;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .nav-links {
+                display: none;
+            }
+            .hero-title {
+                font-size: 32px;
+            }
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <a href="/" class="brand">
+            <div class="brand-icon">🚌</div>
+            <div class="brand-text">SR<span>MSS</span></div>
+        </a>
+        <div class="nav-links">
+            <a href="#features">Features</a>
+            <a href="#about">About</a>
+            <a href="#stats">Statistics</a>
+            <a href="#contact">Contact</a>
+            <a href="/login" class="btn-nav">Login</a>
+        </div>
+    </nav>
+    
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <div class="hero-content">
+                <span class="hero-badge">🚀 Public Transport Management</span>
+                <h1 class="hero-title">
+                    Smart Route <span class="highlight">Management</span> & Scheduling System
+                </h1>
+                <p class="hero-text">
+                    Transform your public transport depot operations with our integrated digital platform. 
+                    Streamline route planning, optimize fleet utilization, and enhance operational efficiency.
+                </p>
+                <div class="hero-buttons">
+                    <a href="/register" class="btn-primary">
+                        Get Started Free →
+                    </a>
+                    <a href="#features" class="btn-outline">
+                        Learn More
+                    </a>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <svg viewBox="0 0 400 350" width="400" height="350">
+                    <rect x="60" y="120" width="280" height="100" rx="20" fill="#1a73e8" opacity="0.9"/>
+                    <rect x="75" y="135" width="70" height="40" rx="8" fill="white" opacity="0.5"/>
+                    <rect x="155" y="135" width="70" height="40" rx="8" fill="white" opacity="0.5"/>
+                    <rect x="235" y="135" width="90" height="40" rx="8" fill="white" opacity="0.5"/>
+                    <circle cx="130" cy="230" r="22" fill="#1e293b"/>
+                    <circle cx="130" cy="230" r="10" fill="#64748b"/>
+                    <circle cx="290" cy="230" r="22" fill="#1e293b"/>
+                    <circle cx="290" cy="230" r="10" fill="#64748b"/>
+                    <rect x="48" y="160" width="15" height="18" rx="3" fill="#fbbf24"/>
+                    <rect x="48" y="185" width="15" height="12" rx="3" fill="#ef4444"/>
+                    <path d="M250 260 Q300 290 350 270 Q380 260 400 280" stroke="#34a853" stroke-width="3" fill="none" stroke-dasharray="8,4"/>
+                    <circle cx="400" cy="280" r="8" fill="#ef4444"/>
+                    <circle cx="250" cy="260" r="8" fill="#34a853"/>
+                    <text x="250" y="310" font-size="12" fill="#64748b" text-anchor="middle">Start Point</text>
+                    <text x="400" y="310" font-size="12" fill="#64748b" text-anchor="middle">Destination</text>
+                </svg>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Stats Bar -->
+    <div class="stats-bar" id="stats">
+        <div class="stat-item">
+            <div class="stat-number">150+</div>
+            <div class="stat-label">Active Depots</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">2,500+</div>
+            <div class="stat-label">Buses Managed</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">5,000+</div>
+            <div class="stat-label">Daily Routes</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">99.9%</div>
+            <div class="stat-label">System Uptime</div>
+        </div>
+    </div>
+    
+    <!-- Features Section -->
+    <section class="section" id="features">
+        <div class="section-header">
+            <div class="section-label">Features</div>
+            <h2 class="section-title">Everything You Need</h2>
+            <p class="section-subtitle">Comprehensive tools to manage your transport depot efficiently</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon route">🗺️</div>
+                <h3>Route Planning</h3>
+                <p>Create, modify, and manage routes with start/end points, stops, and distance tracking. Visual mapping for better clarity.</p>
+                <a href="#" class="feature-link">Learn more →</a>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon schedule">📅</div>
+                <h3>Schedule Management</h3>
+                <p>Generate daily, weekly, and monthly timetables. Automatic conflict detection prevents route overlaps.</p>
+                <a href="#" class="feature-link">Learn more →</a>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon fleet">🚍</div>
+                <h3>Fleet Management</h3>
+                <p>Track all vehicles with registration details, capacity, mileage, and maintenance history in one place.</p>
+                <a href="#" class="feature-link">Learn more →</a>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon driver">👨‍✈️</div>
+                <h3>Driver Management</h3>
+                <p>Maintain comprehensive driver profiles with license tracking, working hours, and route assignments.</p>
+                <a href="#" class="feature-link">Learn more →</a>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon fuel">⛽</div>
+                <h3>Fuel & Maintenance</h3>
+                <p>Log fuel consumption and maintenance activities. Generate cost reports for eco-friendly operations.</p>
+                <a href="#" class="feature-link">Learn more →</a>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon report">📊</div>
+                <h3>Analytics & Reports</h3>
+                <p>Generate automated reports on trip completion, route performance, and operational efficiency.</p>
+                <a href="#" class="feature-link">Learn more →</a>
+            </div>
+        </div>
+    </section>
+    
+    <!-- CTA Section -->
+    <section class="cta-section" id="contact">
+        <h2>Ready to Transform Your Depot Operations?</h2>
+        <p>Join hundreds of transport depots already using SRMSS to streamline their operations.</p>
+        <a href="/register" class="btn-white">Start Free Trial Today</a>
+    </section>
+    
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-grid">
+            <div>
+                <h4>🚌 SRMSS</h4>
+                <p>Smart Route Management & Scheduling System for public transport depots in Sri Lanka. Streamlining operations with technology.</p>
+            </div>
+            <div>
+                <h4>Quick Links</h4>
+                <a href="/">Home</a>
+                <a href="#features">Features</a>
+                <a href="/login">Login</a>
+                <a href="/register">Register</a>
+            </div>
+            <div>
+                <h4>Features</h4>
+                <a href="#">Route Planning</a>
+                <a href="#">Scheduling</a>
+                <a href="#">Fleet Management</a>
+                <a href="#">Reports</a>
+            </div>
+            <div>
+                <h4>Contact</h4>
+                <a href="#">📧 info@srmss.lk</a>
+                <a href="#">📞 +94 11 234 5678</a>
+                <a href="#">📍 Colombo, Sri Lanka</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            &copy; 2026 SRMSS. All rights reserved. | CS6003 Advanced Software Engineering | London Metropolitan University
+        </div>
+    </footer>
+    
+    <script>
+        // Navbar scroll effect
+        window.addEventListener('scroll', function() {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+        
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

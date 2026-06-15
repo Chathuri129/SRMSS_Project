@@ -1,0 +1,621 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Range Report - SRMSS Admin</title>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --dark: #1e293b;
+            --gray: #64748b;
+            --border: #e5e7eb;
+            --white: #ffffff;
+            --danger: #ef4444;
+            --success: #16a34a;
+            --warning: #d97706;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #f1f5f9;
+            min-height: 100vh;
+            display: flex;
+        }
+        
+        .sidebar {
+            width: 260px; background: var(--dark); color: #cbd5e1;
+            min-height: 100vh; position: fixed; left: 0; top: 0; bottom: 0;
+            z-index: 100; display: flex; flex-direction: column;
+        }
+        
+        .sidebar-brand {
+            padding: 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; gap: 12px;
+        }
+        
+        .sidebar-brand .icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            border-radius: 10px; display: flex; align-items: center;
+            justify-content: center; font-size: 20px;
+        }
+        
+        .sidebar-brand h3 { font-size: 16px; font-weight: 700; color: white; }
+        .sidebar-brand span { font-size: 11px; color: #fbbf24; display: block; font-weight: 600; }
+        
+        .sidebar-nav { flex: 1; padding: 20px 15px; overflow-y: auto; }
+        
+        .sidebar-nav .nav-label {
+            font-size: 10px; text-transform: uppercase; letter-spacing: 2px;
+            color: #64748b; margin-bottom: 10px; padding: 0 10px; font-weight: 700;
+        }
+        
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 15px; color: #94a3b8; text-decoration: none;
+            border-radius: 8px; font-size: 14px; font-weight: 500;
+            transition: all 0.2s; margin-bottom: 2px;
+        }
+        
+        .sidebar-nav a:hover { background: rgba(255,255,255,0.05); color: white; }
+        .sidebar-nav a.active { background: rgba(251,191,36,0.15); color: #fbbf24; font-weight: 600; }
+        
+        .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+        
+        .user-info { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        
+        .user-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 14px; color: #1e293b;
+        }
+        
+        .user-details { flex: 1; }
+        .user-details .name { font-weight: 600; font-size: 13px; color: white; }
+        .user-details .role { font-size: 11px; color: #fbbf24; font-weight: 600; }
+        
+        .btn-logout {
+            display: block; width: 100%; padding: 8px;
+            background: rgba(239,68,68,0.1); color: #ef4444;
+            border: 1px solid rgba(239,68,68,0.3); border-radius: 6px;
+            text-align: center; text-decoration: none;
+            font-size: 13px; font-weight: 500; transition: all 0.2s;
+        }
+        .btn-logout:hover { background: rgba(239,68,68,0.2); }
+        
+        .main-content { margin-left: 260px; flex: 1; }
+        
+        .top-bar {
+            background: white; padding: 16px 30px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 50;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .top-bar h2 { font-size: 20px; font-weight: 700; color: var(--dark); }
+        
+        .content-area { padding: 30px; }
+        
+        .flash-message {
+            padding: 12px 15px; border-radius: 8px; margin-bottom: 20px;
+            font-size: 14px; font-weight: 500;
+        }
+        .flash-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        
+        .filter-bar {
+            background: white;
+            border-radius: 14px;
+            padding: 20px 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .report-switch {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--border);
+        }
+        
+        .switch-btn {
+            padding: 10px 24px;
+            background: white;
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            color: var(--primary);
+            transition: all 0.2s;
+        }
+        
+        .switch-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .switch-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .date-range {
+            display: flex;
+            gap: 20px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+        
+        .date-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .date-group label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gray);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .date-group input {
+            padding: 10px 14px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .date-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .btn-apply {
+            padding: 10px 24px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-apply:hover {
+            background: #1557b0;
+            transform: translateY(-1px);
+        }
+        
+        .btn-export {
+            padding: 10px 20px;
+            background: var(--success);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn-export:hover {
+            background: #15803d;
+            transform: translateY(-1px);
+        }
+        
+        .report-header {
+            background: linear-gradient(135deg, #1a73e8, #4dabf7);
+            color: white;
+            padding: 25px 30px;
+            border-radius: 14px;
+            margin-bottom: 30px;
+        }
+        
+        .report-header h2 { margin-bottom: 5px; font-size: 24px; }
+        .report-header p { opacity: 0.9; font-size: 14px; }
+        
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px; margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white; padding: 20px; border-radius: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: center;
+        }
+        
+        .stat-card .stat-icon { font-size: 32px; margin-bottom: 10px; }
+        .stat-card h3 { font-size: 28px; font-weight: 700; color: var(--dark); }
+        .stat-card p { font-size: 12px; color: var(--gray); font-weight: 500; }
+        
+        .card {
+            background: white; border-radius: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 25px; overflow: hidden;
+        }
+        
+        .card-header {
+            padding: 18px 24px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .card-header h3 { font-size: 16px; font-weight: 700; color: var(--dark); }
+        .card-body { padding: 24px; }
+        .card-body.no-padding { padding: 0; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #f8fafc;
+            padding: 14px 16px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--gray);
+            border-bottom: 2px solid var(--border);
+        }
+        
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            vertical-align: middle;
+        }
+        
+        tr:hover td {
+            background: #f8fafc;
+        }
+        
+        td:nth-child(2),
+        td:nth-child(3),
+        td:nth-child(4),
+        td:nth-child(5),
+        td:nth-child(6) {
+            text-align: center;
+        }
+        
+        .badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+            white-space: nowrap;
+        }
+        
+        .badge-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .badge-neutral {
+            background: #f1f5f9;
+            color: #475569;
+        }
+        
+        .trend-up { color: #16a34a; }
+        .trend-down { color: #ef4444; }
+        
+        @media (max-width: 768px) {
+            .sidebar { width: 70px; }
+            .sidebar-brand h3, .sidebar-brand span,
+            .sidebar-nav a span, .sidebar-nav .nav-label,
+            .user-details { display: none; }
+            .sidebar-nav a { justify-content: center; padding: 12px; }
+            .main-content { margin-left: 70px; }
+            .date-range { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <div class="icon">👑</div>
+            <div>
+                <h3>SRMSS</h3>
+                <span>Admin Panel</span>
+            </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <div class="nav-label">Main Menu</div>
+            <a href="/admin/dashboard">📊 Dashboard</a>
+            
+            <div class="nav-label" style="margin-top: 20px;">Management</div>
+            <a href="/admin/routes">🗺️ Routes</a>
+            <a href="/admin/vehicles">🚍 Vehicles</a>
+            <a href="/admin/drivers">👨‍✈️ Drivers</a>
+            <a href="/admin/schedules">📅 Schedules</a>
+            
+            <div class="nav-label" style="margin-top: 20px;">Operations</div>
+            <a href="/admin/fuel-logs">⛽ Fuel Logs</a>
+            <a href="/admin/maintenance">🔧 Maintenance</a>
+            <a href="/admin/reports" class="active">📈 Reports</a>
+            
+            <div class="nav-label" style="margin-top: 20px;">System</div>
+            <a href="/admin/users">👥 Users</a>
+            <a href="/admin/settings">⚙️ Settings</a>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">{{ session.get('first_name', 'A')[0] }}{{ session.get('last_name', 'U')[0] }}</div>
+                <div class="user-details">
+                    <div class="name">{{ session.get('first_name', 'Admin') }} {{ session.get('last_name', 'User') }}</div>
+                    <div class="role">{{ session.get('role', 'Administrator')|title }}</div>
+                </div>
+            </div>
+            <a href="/logout" class="btn-logout">🚪 Logout</a>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="top-bar">
+            <h2>📌 Custom Range Report</h2>
+            <div class="btn-group">
+                <a href="/admin/reports/export-pdf?period=custom&start_date={{ start_date }}&end_date={{ end_date }}" class="btn-export">📄 Export PDF</a>
+                <a href="/admin/reports/export-csv/routes?period=custom&start_date={{ start_date }}&end_date={{ end_date }}" class="btn-export" style="background: #d97706;">📊 Export CSV</a>
+            </div>
+        </div>
+        
+        <div class="content-area">
+            
+            <div class="filter-bar">
+                <div class="report-switch">
+                    <a href="/admin/reports/weekly" class="switch-btn">📅 Weekly Report</a>
+                    <a href="/admin/reports/monthly" class="switch-btn">📆 Monthly Report</a>
+                    <a href="/admin/reports" class="switch-btn active">📌 Custom Range</a>
+                </div>
+                
+                <form method="GET" action="/admin/reports">
+                    <input type="hidden" name="period" value="custom">
+                    <div class="date-range">
+                        <div class="date-group">
+                            <label>Start Date</label>
+                            <input type="date" name="start_date" value="{{ start_date }}">
+                        </div>
+                        <div class="date-group">
+                            <label>End Date</label>
+                            <input type="date" name="end_date" value="{{ end_date }}">
+                        </div>
+                        <button type="submit" class="btn-apply">Apply Filters</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="report-header">
+                <h2>📊 Custom Range Report</h2>
+                <p>{{ start_date }} to {{ end_date }}</p>
+            </div>
+            
+            <!-- Summary Statistics -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">🗺️</div>
+                    <h3>{{ stats.total_routes }}</h3>
+                    <p>Total Routes</p>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🚍</div>
+                    <h3>{{ stats.total_vehicles }}</h3>
+                    <p>Total Vehicles</p>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">👨‍✈️</div>
+                    <h3>{{ stats.active_drivers }}</h3>
+                    <p>Active Drivers</p>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🧑</div>
+                    <h3>{{ stats.total_customers }}</h3>
+                    <p>Total Customers</p>
+                </div>
+            </div>
+            
+            <!-- Trip Performance -->
+            <div class="card">
+                <div class="card-header"><h3>📊 Trip Performance</h3></div>
+                <div class="card-body">
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);">
+                        <span>Total Trips:</span>
+                        <strong>{{ stats.total_trips }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);">
+                        <span>Completed:</span>
+                        <strong>{{ stats.completed_trips }} <span class="trend-up">({{ stats.completion_rate }}%)</span></strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);">
+                        <span>On Time:</span>
+                        <strong>{{ stats.on_time_trips }} <span class="trend-up">({{ stats.on_time_rate }}%)</span></strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);">
+                        <span>Delayed:</span>
+                        <strong>{{ stats.delayed_trips }} <span class="trend-down">({{ stats.delayed_rate }}%)</span></strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                        <span>Cancelled:</span>
+                        <strong>{{ stats.cancelled_trips }} ({{ stats.cancelled_rate }}%)</strong>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Route Performance Table -->
+            <div class="card">
+                <div class="card-header"><h3>🏆 Route Performance</h3></div>
+                <div class="card-body no-padding">
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Route</th>
+                                    <th>Distance</th>
+                                    <th>Trips</th>
+                                    <th>Completed</th>
+                                    <th>On Time</th>
+                                    <th>Delayed</th>
+                                    <th>Reliability</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for route in route_performance %}
+                                <tr>
+                                    <td><strong>{{ route.route_name }}</strong><br><small>{{ route.route_code }}</small></td>
+                                    <td>{{ route.total_distance }} km</td>
+                                    <td>{{ route.total_trips or 0 }}</td>
+                                    <td>{{ route.completed_trips or 0 }}</td>
+                                    <td>{{ route.on_time_trips or 0 }}</td>
+                                    <td>{{ route.delayed_trips or 0 }}</td>
+                                    <td>
+                                        {% set reliability = route.reliability_score|float %}
+                                        {% if reliability >= 80 %}
+                                            <span class="badge badge-success">{{ "%.1f"|format(reliability) }}%</span>
+                                        {% elif reliability >= 50 %}
+                                            <span class="badge badge-warning">{{ "%.1f"|format(reliability) }}%</span>
+                                        {% elif reliability > 0 %}
+                                            <span class="badge badge-danger">{{ "%.1f"|format(reliability) }}%</span>
+                                        {% else %}
+                                            <span class="badge badge-neutral">—</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Driver Performance - FIXED -->
+            <div class="card">
+                <div class="card-header"><h3>👨‍✈️ Driver Performance</h3></div>
+                <div class="card-body no-padding">
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Driver Name</th>
+                                    <th>Trips</th>
+                                    <th>Completed</th>
+                                    <th>On Time</th>
+                                    <th>Delayed</th>
+                                    <th>Punctuality</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if driver_performance and driver_performance|length > 0 %}
+                                    {% for driver in driver_performance %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ driver.driver_name }}</strong>
+                                            {% if driver.total_trips == 0 %}
+                                                <br><small style="color: var(--gray);">No trips in this period</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ driver.total_trips or 0 }}</td>
+                                        <td>{{ driver.completed_trips or 0 }}</td>
+                                        <td>{{ driver.on_time_trips or 0 }}</td>
+                                        <td>{{ driver.delayed_trips or 0 }}</td>
+                                        <td>
+                                            {% set punctuality = driver.punctuality_rate|float %}
+                                            {% if punctuality >= 80 %}
+                                                <span class="badge badge-success">⭐ {{ punctuality }}%</span>
+                                            {% elif punctuality >= 50 %}
+                                                <span class="badge badge-warning">⚠️ {{ punctuality }}%</span>
+                                            {% elif punctuality > 0 %}
+                                                <span class="badge badge-danger">❌ {{ punctuality }}%</span>
+                                            {% else %}
+                                                <span class="badge badge-neutral">—</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="6" style="text-align: center; padding: 40px; color: var(--gray);">
+                                            No driver performance data available for this period
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Vehicle Fuel Efficiency -->
+            <div class="card">
+                <div class="card-header"><h3>⛽ Vehicle Fuel Efficiency (L/100km)</h3></div>
+                <div class="card-body no-padding">
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Vehicle</th>
+                                    <th>Type</th>
+                                    <th>Fuel Logs</th>
+                                    <th>Total Fuel (L)</th>
+                                    <th>Total Cost</th>
+                                    <th>Efficiency</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for vehicle in vehicle_efficiency %}
+                                <tr>
+                                    <td><strong>{{ vehicle.registration_number }}</strong></td>
+                                    <td>{{ vehicle.vehicle_type|title }}</td>
+                                    <td>{{ vehicle.fuel_logs or 0 }}</td>
+                                    <td>{{ "%.0f"|format(vehicle.total_fuel or 0) }} L</td>
+                                    <td>Rs. {{ "%.0f"|format(vehicle.total_cost or 0) }}</td>
+                                    <td>
+                                        {% set efficiency = vehicle.fuel_efficiency|float %}
+                                        {% if efficiency <= 30 and efficiency > 0 %}
+                                            <span class="badge badge-success">{{ "%.1f"|format(efficiency) }} L/100km</span>
+                                        {% elif efficiency <= 45 and efficiency > 0 %}
+                                            <span class="badge badge-warning">{{ "%.1f"|format(efficiency) }} L/100km</span>
+                                        {% elif efficiency > 0 %}
+                                            <span class="badge badge-danger">{{ "%.1f"|format(efficiency) }} L/100km</span>
+                                        {% else %}
+                                            <span class="badge badge-neutral">—</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+</body>
+</html>

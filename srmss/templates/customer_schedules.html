@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bus Schedules - SRMSS Customer</title>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --dark: #1e293b;
+            --gray: #64748b;
+            --border: #e5e7eb;
+            --white: #ffffff;
+            --danger: #ef4444;
+            --success: #16a34a;
+            --warning: #d97706;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #f1f5f9;
+            min-height: 100vh;
+            display: flex;
+        }
+        
+        .sidebar {
+            width: 260px; background: var(--dark); color: #cbd5e1;
+            min-height: 100vh; position: fixed; left: 0; top: 0; bottom: 0;
+            z-index: 100; display: flex; flex-direction: column;
+        }
+        
+        .sidebar-brand {
+            padding: 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; gap: 12px;
+        }
+        
+        .sidebar-brand .icon {
+            width: 40px; height: 40px; background: var(--primary);
+            border-radius: 10px; display: flex; align-items: center;
+            justify-content: center; font-size: 20px;
+        }
+        
+        .sidebar-brand h3 { font-size: 16px; font-weight: 700; color: white; }
+        .sidebar-brand span { font-size: 11px; color: #94a3b8; display: block; }
+        
+        .sidebar-nav { flex: 1; padding: 20px 15px; overflow-y: auto; }
+        
+        .sidebar-nav .nav-label {
+            font-size: 10px; text-transform: uppercase; letter-spacing: 2px;
+            color: #64748b; margin-bottom: 10px; padding: 0 10px; font-weight: 700;
+        }
+        
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 15px; color: #94a3b8; text-decoration: none;
+            border-radius: 8px; font-size: 14px; font-weight: 500;
+            transition: all 0.2s; margin-bottom: 2px;
+        }
+        
+        .sidebar-nav a:hover { background: rgba(255,255,255,0.05); color: white; }
+        .sidebar-nav a.active { background: rgba(26,115,232,0.2); color: #60a5fa; font-weight: 600; }
+        
+        .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+        
+        .user-info { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        
+        .user-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: var(--primary); display: flex; align-items: center;
+            justify-content: center; font-weight: 600; font-size: 14px; color: white;
+        }
+        
+        .user-details { flex: 1; }
+        .user-details .name { font-weight: 600; font-size: 13px; color: white; }
+        .user-details .role { font-size: 11px; color: #94a3b8; }
+        
+        .btn-logout {
+            display: block; width: 100%; padding: 8px;
+            background: rgba(239,68,68,0.1); color: #ef4444;
+            border: 1px solid rgba(239,68,68,0.3); border-radius: 6px;
+            text-align: center; text-decoration: none;
+            font-size: 13px; font-weight: 500; transition: all 0.2s;
+        }
+        .btn-logout:hover { background: rgba(239,68,68,0.2); }
+        
+        .main-content { margin-left: 260px; flex: 1; }
+        
+        .top-bar {
+            background: white; padding: 16px 30px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 50;
+        }
+        
+        .top-bar h2 { font-size: 20px; font-weight: 700; color: var(--dark); }
+        
+        .content-area { padding: 30px; }
+        
+        .flash-message {
+            padding: 12px 15px; border-radius: 8px; margin-bottom: 20px;
+            font-size: 14px; font-weight: 500;
+        }
+        .flash-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .flash-info { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+        
+        .schedule-card {
+            background: white; border-radius: 14px; margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden;
+            transition: all 0.2s;
+        }
+        
+        .schedule-card:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08); transform: translateY(-2px);
+        }
+        
+        .schedule-header {
+            padding: 18px 24px; background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .schedule-route {
+            font-size: 18px; font-weight: 700; color: var(--dark);
+        }
+        
+        .schedule-vehicle {
+            font-size: 12px; color: var(--gray);
+            background: #e5e7eb;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+        
+        .schedule-body {
+            padding: 20px 24px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+        
+        .schedule-info .label {
+            font-size: 11px; color: var(--gray); text-transform: uppercase;
+            margin-bottom: 5px; font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .schedule-info .value {
+            font-size: 15px; font-weight: 600; color: var(--dark);
+        }
+        
+        .badge {
+            padding: 4px 12px; border-radius: 20px;
+            font-size: 11px; font-weight: 700; display: inline-block;
+        }
+        .badge-available { background: #dcfce7; color: #166534; }
+        .badge-booking { background: #fef3c7; color: #92400e; }
+        
+        .btn-track-live {
+            padding: 10px 20px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-track-live:hover {
+            background: #1557b0;
+            transform: translateY(-1px);
+        }
+        
+        .btn-book {
+            padding: 10px 24px;
+            background: var(--success);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        .btn-book:hover { background: #15803d; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(22,163,74,0.3); }
+        
+        .booking-modal {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+            z-index: 1000; align-items: center; justify-content: center;
+        }
+        .booking-modal.active { display: flex; }
+        
+        .modal-content {
+            background: white; border-radius: 16px; width: 90%; max-width: 400px;
+            padding: 24px; animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateY(-30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .modal-content h3 {
+            color: var(--dark);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border);
+        }
+        
+        .modal-content .info-row {
+            margin-bottom: 15px;
+        }
+        
+        .modal-content .info-label {
+            font-size: 12px;
+            color: var(--gray);
+            display: block;
+            margin-bottom: 3px;
+        }
+        
+        .modal-content .info-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .modal-content input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        .modal-content input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        
+        .btn-cancel {
+            padding: 8px 16px;
+            background: #e5e7eb;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-cancel:hover { background: #d1d5db; }
+        
+        .btn-confirm {
+            padding: 8px 20px;
+            background: var(--success);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-confirm:hover { background: #15803d; }
+        
+        .no-schedules {
+            text-align: center; padding: 60px; background: white;
+            border-radius: 14px; color: var(--gray);
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .back-link:hover { text-decoration: underline; }
+        
+        @media (max-width: 768px) {
+            .sidebar { width: 70px; }
+            .sidebar-brand h3, .sidebar-brand span,
+            .sidebar-nav a span, .sidebar-nav .nav-label,
+            .user-details { display: none; }
+            .sidebar-nav a { justify-content: center; padding: 12px; }
+            .main-content { margin-left: 70px; }
+            .schedule-body { grid-template-columns: 1fr; gap: 12px; }
+            .schedule-header { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <div class="icon">🚌</div>
+            <div>
+                <h3>SRMSS</h3>
+                <span>Customer Portal</span>
+            </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <div class="nav-label">Main Menu</div>
+            <a href="/customer/dashboard">📊 Dashboard</a>
+            <a href="/customer/routes">🔍 Find Routes</a>
+            <a href="/customer/bookings">📅 My Bookings</a>
+            <a href="/customer/schedules" class="active">⏰ Schedules</a>
+            <!-- <a href="/customer/track">📍 Track Bus</a> -->
+            
+            <div class="nav-label" style="margin-top: 20px;">Account</div>
+            <a href="/customer/profile">👤 My Profile</a>
+            <a href="/customer/history">📋 Booking History</a>
+            <a href="/customer/support">💬 Support</a>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">{{ session.get('first_name', 'C')[0] }}{{ session.get('last_name', 'U')[0] }}</div>
+                <div class="user-details">
+                    <div class="name">{{ session.get('first_name', 'Customer') }} {{ session.get('last_name', 'User') }}</div>
+                    <div class="role">Customer</div>
+                </div>
+            </div>
+            <a href="/logout" class="btn-logout">🚪 Logout</a>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="top-bar">
+            <h2>⏰ Bus Schedules</h2>
+            <span style="color:var(--gray);">View and book available trips</span>
+        </div>
+        
+        <div class="content-area">
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <a href="/customer/routes" class="back-link">← Back to Routes</a>
+            
+            {% if schedules %}
+                {% for schedule in schedules %}
+                <div class="schedule-card">
+                    <div class="schedule-header">
+                        <span class="schedule-route">🚌 {{ schedule.route_name }}</span>
+                        <span class="schedule-vehicle">Bus: {{ schedule.registration_number }}</span>
+                    </div>
+                    <div class="schedule-body">
+                        <div class="schedule-info">
+                            <div class="label">From → To</div>
+                            <div class="value">{{ schedule.start_point }} → {{ schedule.end_point }}</div>
+                        </div>
+                        <div class="schedule-info">
+                            <div class="label">Travel Date</div>
+                            <div class="value">{{ schedule.schedule_date }}</div>
+                        </div>
+                        <div class="schedule-info">
+                            <div class="label">Departure → Arrival</div>
+                            <div class="value">{{ schedule.departure_time }} → {{ schedule.arrival_time }}</div>
+                        </div>
+                        <div class="schedule-info">
+                            <div class="label">Distance / Fare</div>
+                            <div class="value">{{ schedule.total_distance }} km / Rs. {{ "%.2f"|format(schedule.base_fare or 0) }}</div>
+                        </div>
+                        <div class="schedule-info">
+                            <div class="label">Driver</div>
+                            <div class="value">👨‍✈️ {{ schedule.driver_name }}</div>
+                        </div>
+                        <div class="schedule-info">
+                            <div class="label">Capacity</div>
+                            <div class="value">🪑 {{ schedule.seating_capacity }} seats</div>
+                        </div>
+                    </div>
+                    <div style="padding: 12px 24px 20px; text-align: right; display: flex; gap: 10px; justify-content: flex-end;">
+                        <!-- <a href="/customer/track-schedule/{{ schedule.id }}" class="btn-track-live">📍 Track Live</a> -->
+                        <button class="btn-book" onclick="openBookingModal(
+                            '{{ schedule.id }}',
+                            '{{ schedule.route_name }}',
+                            '{{ schedule.schedule_date }}',
+                            '{{ schedule.departure_time }}',
+                            '{{ schedule.base_fare or 0 }}'
+                        )">📅 Book Now</button>
+                    </div>
+                </div>
+                {% endfor %}
+                
+            {% else %}
+                <div class="no-schedules">
+                    <div style="font-size: 64px; margin-bottom: 15px;">⏰</div>
+                    <h3 style="margin-bottom: 10px; color: var(--dark);">No Schedules Available</h3>
+                    <p>There are no upcoming bus schedules at the moment.</p>
+                    <p style="margin-top: 10px;">Please check back later or browse other routes.</p>
+                    <a href="/customer/routes" style="display: inline-block; margin-top: 20px; color: var(--primary); text-decoration: none;">Browse Routes →</a>
+                </div>
+            {% endif %}
+            
+        </div>
+    </div>
+    
+    <!-- Booking Modal -->
+    <div class="booking-modal" id="bookingModal">
+        <div class="modal-content">
+            <h3>📅 Confirm Your Booking</h3>
+            <form method="POST" action="/customer/bookings" id="bookingForm">
+                <input type="hidden" name="schedule_id" id="schedule_id">
+                
+                <div class="info-row">
+                    <span class="info-label">Route</span>
+                    <span class="info-value" id="route_name"></span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">Travel Date</span>
+                    <span class="info-value" id="travel_date"></span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">Departure Time</span>
+                    <span class="info-value" id="departure_time"></span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">Number of Passengers</span>
+                    <input type="number" name="passenger_count" id="passenger_count" min="1" max="10" value="1">
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">Total Fare</span>
+                    <span class="info-value" id="total_fare">Rs. 0.00</span>
+                </div>
+                
+                <input type="hidden" name="travel_date" id="travel_date_input">
+                
+                <div class="modal-buttons">
+                    <button type="button" class="btn-cancel" onclick="closeBookingModal()">Cancel</button>
+                    <button type="submit" class="btn-confirm">Confirm Booking</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        let currentFare = 0;
+        let currentScheduleId = null;
+        
+        function openBookingModal(scheduleId, routeName, date, time, fare) {
+            currentScheduleId = scheduleId;
+            currentFare = parseFloat(fare);
+            
+            document.getElementById('schedule_id').value = scheduleId;
+            document.getElementById('route_name').textContent = routeName;
+            document.getElementById('travel_date').textContent = date;
+            document.getElementById('departure_time').textContent = time;
+            document.getElementById('travel_date_input').value = date;
+            document.getElementById('total_fare').textContent = 'Rs. ' + currentFare.toFixed(2);
+            document.getElementById('bookingModal').classList.add('active');
+        }
+        
+        function closeBookingModal() {
+            document.getElementById('bookingModal').classList.remove('active');
+            document.getElementById('passenger_count').value = 1;
+        }
+        
+        // Update total fare when passenger count changes
+        document.getElementById('passenger_count').addEventListener('change', function() {
+            const count = parseInt(this.value) || 1;
+            const total = currentFare * count;
+            document.getElementById('total_fare').textContent = 'Rs. ' + total.toFixed(2);
+        });
+        
+        // Close modal when clicking outside
+        document.getElementById('bookingModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeBookingModal();
+            }
+        });
+    </script>
+    
+</body>
+</html>

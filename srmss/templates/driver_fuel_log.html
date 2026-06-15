@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuel Log - SRMSS Driver</title>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --dark: #1e293b;
+            --gray: #64748b;
+            --border: #e5e7eb;
+            --danger: #ef4444;
+            --success: #16a34a;
+            --warning: #d97706;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #f1f5f9;
+            min-height: 100vh;
+            display: flex;
+        }
+        
+        .sidebar {
+            width: 260px; background: var(--dark); color: #cbd5e1;
+            min-height: 100vh; position: fixed; left: 0; top: 0; bottom: 0;
+            z-index: 100; display: flex; flex-direction: column;
+        }
+        
+        .sidebar-brand {
+            padding: 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; gap: 12px;
+        }
+        
+        .sidebar-brand .icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, #16a34a, #22c55e);
+            border-radius: 10px; display: flex; align-items: center;
+            justify-content: center; font-size: 20px;
+        }
+        
+        .sidebar-brand h3 { font-size: 16px; font-weight: 700; color: white; }
+        .sidebar-brand span { font-size: 11px; color: #4ade80; display: block; font-weight: 600; }
+        
+        .sidebar-nav { flex: 1; padding: 20px 15px; overflow-y: auto; }
+        
+        .sidebar-nav .nav-label {
+            font-size: 10px; text-transform: uppercase; letter-spacing: 2px;
+            color: #64748b; margin-bottom: 10px; padding: 0 10px; font-weight: 700;
+        }
+        
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 15px; color: #94a3b8; text-decoration: none;
+            border-radius: 8px; font-size: 14px; font-weight: 500;
+            transition: all 0.2s; margin-bottom: 2px;
+        }
+        
+        .sidebar-nav a:hover { background: rgba(255,255,255,0.05); color: white; }
+        .sidebar-nav a.active { background: rgba(34,197,94,0.15); color: #4ade80; font-weight: 600; }
+        
+        .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+        
+        .user-info { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        
+        .user-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: linear-gradient(135deg, #16a34a, #22c55e);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 14px; color: white;
+        }
+        
+        .user-details { flex: 1; }
+        .user-details .name { font-weight: 600; font-size: 13px; color: white; }
+        .user-details .role { font-size: 11px; color: #4ade80; font-weight: 600; }
+        
+        .btn-logout {
+            display: block; width: 100%; padding: 8px;
+            background: rgba(239,68,68,0.1); color: #ef4444;
+            border: 1px solid rgba(239,68,68,0.3); border-radius: 6px;
+            text-align: center; text-decoration: none;
+            font-size: 13px; font-weight: 500; transition: all 0.2s;
+        }
+        .btn-logout:hover { background: rgba(239,68,68,0.2); }
+        
+        .main-content { margin-left: 260px; flex: 1; }
+        
+        .top-bar {
+            background: white; padding: 16px 30px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 50;
+        }
+        
+        .top-bar h2 { font-size: 20px; font-weight: 700; color: var(--dark); }
+        
+        .content-area { padding: 30px; }
+        
+        .flash-message {
+            padding: 12px 15px; border-radius: 8px; margin-bottom: 20px;
+            font-size: 14px; font-weight: 500;
+        }
+        .flash-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .flash-warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        
+        .btn {
+            padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600;
+            border: none; cursor: pointer; transition: all 0.2s;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #1557b0; transform: translateY(-1px); }
+        .btn-outline { background: white; color: var(--primary); border: 2px solid var(--primary); }
+        .btn-outline:hover { background: var(--primary); color: white; }
+        
+        .card {
+            background: white; border-radius: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 25px; overflow: hidden;
+        }
+        
+        .card-header {
+            padding: 18px 24px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .card-header h3 { font-size: 16px; font-weight: 700; color: var(--dark); }
+        .card-body { padding: 24px; }
+        .card-body.no-padding { padding: 0; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        
+        th {
+            background: #f8fafc; padding: 12px 16px; text-align: left;
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.5px; color: var(--gray); border-bottom: 2px solid var(--border);
+        }
+        
+        td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--dark); }
+        tr:hover { background: #f8fafc; }
+        
+        .form-group { margin-bottom: 16px; }
+        
+        .form-group label {
+            display: block; margin-bottom: 6px; color: var(--dark);
+            font-weight: 600; font-size: 13px;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%; padding: 10px 14px;
+            border: 2px solid var(--border); border-radius: 8px;
+            font-size: 14px; transition: all 0.3s;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none; border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(26,115,232,0.1);
+        }
+        
+        .form-group input[type="file"] {
+            padding: 8px 10px;
+            background: #f8fafc;
+        }
+        
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+            z-index: 1000; align-items: center; justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        
+        .modal {
+            background: white; border-radius: 16px; width: 90%; max-width: 600px;
+            max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            padding: 20px 24px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .modal-header h3 { font-size: 18px; font-weight: 700; }
+        
+        .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--gray); }
+        .close-btn:hover { color: var(--danger); }
+        
+        .modal-body { padding: 24px; }
+        .modal-footer {
+            padding: 16px 24px; border-top: 1px solid var(--border);
+            display: flex; gap: 10px; justify-content: flex-end;
+        }
+        
+        .receipt-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background: #e8f0fe;
+            border-radius: 4px;
+        }
+        .receipt-link:hover {
+            text-decoration: underline;
+            color: #1557b0;
+            background: #dbeafe;
+        }
+        
+        .file-info {
+            font-size: 11px;
+            color: var(--gray);
+            margin-top: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar { width: 70px; }
+            .sidebar-brand h3, .sidebar-brand span,
+            .sidebar-nav a span, .sidebar-nav .nav-label,
+            .user-details { display: none; }
+            .sidebar-nav a { justify-content: center; padding: 12px; }
+            .main-content { margin-left: 70px; }
+            .form-row { grid-template-columns: 1fr; }
+            table, thead, tbody, th, td, tr { display: block; }
+            th { display: none; }
+            td { display: block; padding: 8px 16px; border-bottom: none; }
+            td::before { content: attr(data-label); font-weight: 600; display: inline-block; width: 120px; }
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <div class="icon">🚌</div>
+            <div>
+                <h3>SRMSS</h3>
+                <span>Driver Portal</span>
+            </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <div class="nav-label">Main Menu</div>
+            <a href="/driver/dashboard">📊 Dashboard</a>
+            <a href="/driver/schedule">📅 My Schedule</a>
+            <a href="/driver/today-route">🗺️ Today's Route</a>
+            <a href="/driver/fuel-log" class="active">⛽ Fuel Log</a>
+            <a href="/driver/reports">📋 Reports</a>
+            <a href="/driver/profile">👤 Profile</a>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">{{ session.get('first_name', 'D')[0] }}{{ session.get('last_name', 'U')[0] }}</div>
+                <div class="user-details">
+                    <div class="name">{{ session.get('first_name', 'Driver') }} {{ session.get('last_name', 'User') }}</div>
+                    <div class="role">Driver</div>
+                </div>
+            </div>
+            <a href="/logout" class="btn-logout">🚪 Logout</a>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="top-bar">
+            <h2>⛽ Fuel Log</h2>
+            <button class="btn btn-primary" onclick="openModal()">➕ Record Fuel</button>
+        </div>
+        
+        <div class="content-area">
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <!-- Fuel Logs Table -->
+            <div class="card">
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Vehicle</th>
+                                <th>Liters</th>
+                                <th>Cost/Liter</th>
+                                <th>Total Cost</th>
+                                <th>Odometer</th>
+                                <th>Station</th>
+                                <th>Receipt</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if fuel_logs %}
+                                {% for log in fuel_logs %}
+                                <tr>
+                                    <td data-label="Date"><strong>{{ log.fuel_date }}</strong></td>
+                                    <td data-label="Vehicle">{{ log.registration_number }} ({{ log.vehicle_code }})</td>
+                                    <td data-label="Liters">{{ log.fuel_liters }} L</td>
+                                    <td data-label="Cost/Liter">Rs. {{ log.cost_per_liter }}</td>
+                                    <td data-label="Total Cost"><strong>Rs. {{ log.total_cost }}</strong></td>
+                                    <td data-label="Odometer">{{ log.odometer_reading }} km</td>
+                                    <td data-label="Station">{{ log.fuel_station or 'N/A' }}</td>
+                                    <td data-label="Receipt">
+                                        {% if log.receipt_path %}
+                                            {% set receipt_url = url_for('static', filename=log.receipt_path) %}
+                                            <a href="{{ receipt_url }}" target="_blank" class="receipt-link" 
+                                               onclick="console.log('Opening: {{ receipt_url }}'); return true;">
+                                                📎 View Receipt
+                                            </a>
+                                            <br>
+                                            <small style="font-size: 9px; color: gray;">{{ log.receipt_path.split('/')|last }}</small>
+                                        {% else %}
+                                            <span style="color: var(--gray);">No receipt</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="8" style="text-align: center; padding: 40px; color: var(--gray);">
+                                        <div style="font-size: 48px; margin-bottom: 10px;">⛽</div>
+                                        <strong>No fuel logs yet.</strong><br>
+                                        <small>Record your fuel usage to track costs.</small>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+    <!-- Add Fuel Log Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>⛽ Record Fuel</h3>
+                <button class="close-btn" onclick="closeModal()">✕</button>
+            </div>
+            <form method="POST" action="/driver/fuel-log" enctype="multipart/form-data" id="fuelForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Vehicle *</label>
+                        <select name="vehicle_id" id="vehicle_id" required>
+                            <option value="">-- Select Vehicle --</option>
+                            {% if vehicles %}
+                                {% for vehicle in vehicles %}
+                                    <option value="{{ vehicle.id }}">{{ vehicle.registration_number }} ({{ vehicle.vehicle_code }}) - {{ vehicle.vehicle_type|title }}</option>
+                                {% endfor %}
+                            {% else %}
+                                <option value="" disabled>No vehicles available. Please contact admin.</option>
+                            {% endif %}
+                        </select>
+                        {% if not vehicles %}
+                            <small style="color: var(--danger); display: block; margin-top: 5px;">
+                                ⚠️ No vehicles assigned to you. Please contact your administrator.
+                            </small>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Date *</label>
+                            <input type="date" name="fuel_date" id="fuel_date" required value="{{ now.strftime('%Y-%m-%d') }}">
+                        </div>
+                        <div class="form-group">
+                            <label>Fuel Station</label>
+                            <input type="text" name="fuel_station" id="fuel_station" placeholder="e.g., Ceypetco">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Liters *</label>
+                            <input type="number" name="fuel_liters" id="fuel_liters" placeholder="e.g., 85" required step="0.01" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Cost per Liter (Rs.) *</label>
+                            <input type="number" name="cost_per_liter" id="cost_per_liter" placeholder="e.g., 330" required step="0.01" min="0">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Total Cost (Rs.) *</label>
+                            <input type="number" name="total_cost" id="total_cost" placeholder="Auto-calculated" required step="0.01" min="0" readonly style="background:#f1f5f9;">
+                        </div>
+                        <div class="form-group">
+                            <label>Odometer Reading (km) *</label>
+                            <input type="number" name="odometer_reading" id="odometer_reading" placeholder="e.g., 125500" required min="0">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Upload Receipt (PDF/JPG/PNG)</label>
+                        <input type="file" name="receipt" id="receipt" accept=".pdf,.jpg,.jpeg,.png,.gif">
+                        <div class="file-info">
+                            📎 Max size: 5MB. Supported formats: PDF, JPG, JPEG, PNG, GIF
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">💾 Save Fuel Log</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        function openModal() {
+            document.getElementById('modalOverlay').classList.add('active');
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('fuel_date').value = today;
+        }
+        
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+            document.getElementById('fuelForm').reset();
+        }
+        
+        document.getElementById('modalOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+        
+        const litersInput = document.getElementById('fuel_liters');
+        const costInput = document.getElementById('cost_per_liter');
+        
+        if (litersInput && costInput) {
+            litersInput.addEventListener('input', calculateTotal);
+            costInput.addEventListener('input', calculateTotal);
+        }
+        
+        function calculateTotal() {
+            const liters = parseFloat(document.getElementById('fuel_liters').value) || 0;
+            const costPerLiter = parseFloat(document.getElementById('cost_per_liter').value) || 0;
+            const total = (liters * costPerLiter).toFixed(2);
+            document.getElementById('total_cost').value = total;
+        }
+    </script>
+    
+</body>
+</html>

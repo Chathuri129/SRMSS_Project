@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Bus - SRMSS</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --dark: #1e293b;
+            --gray: #64748b;
+            --border: #e5e7eb;
+            --danger: #ef4444;
+            --success: #16a34a;
+            --warning: #d97706;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #f1f5f9;
+            min-height: 100vh;
+            display: flex;
+        }
+        
+        .sidebar {
+            width: 260px;
+            background: var(--dark);
+            color: #cbd5e1;
+            min-height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .sidebar-brand {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .sidebar-brand .icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #1a73e8, #4dabf7);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .sidebar-brand h3 {
+            font-size: 16px;
+            font-weight: 700;
+            color: white;
+        }
+        
+        .sidebar-brand span {
+            font-size: 11px;
+            color: #60a5fa;
+            display: block;
+            font-weight: 600;
+        }
+        
+        .sidebar-nav {
+            flex: 1;
+            padding: 20px 15px;
+            overflow-y: auto;
+        }
+        
+        .sidebar-nav .nav-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #64748b;
+            margin-bottom: 10px;
+            padding: 0 10px;
+            font-weight: 700;
+        }
+        
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 15px;
+            color: #94a3b8;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            margin-bottom: 2px;
+        }
+        
+        .sidebar-nav a:hover {
+            background: rgba(255,255,255,0.05);
+            color: white;
+        }
+        
+        .sidebar-nav a.active {
+            background: rgba(96,165,250,0.15);
+            color: #60a5fa;
+            font-weight: 600;
+        }
+        
+        .sidebar-footer {
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #1a73e8, #4dabf7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: white;
+        }
+        
+        .user-details {
+            flex: 1;
+        }
+        
+        .user-details .name {
+            font-weight: 600;
+            font-size: 13px;
+            color: white;
+        }
+        
+        .user-details .role {
+            font-size: 11px;
+            color: #60a5fa;
+            font-weight: 600;
+        }
+        
+        .btn-logout {
+            display: block;
+            width: 100%;
+            padding: 8px;
+            background: rgba(239,68,68,0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239,68,68,0.3);
+            border-radius: 6px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .btn-logout:hover {
+            background: rgba(239,68,68,0.2);
+        }
+        
+        .main-content {
+            margin-left: 260px;
+            flex: 1;
+        }
+        
+        .top-bar {
+            background: white;
+            padding: 16px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .top-bar h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--dark);
+        }
+        
+        .content-area {
+            padding: 30px;
+        }
+        
+        .flash-message {
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .flash-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .flash-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .flash-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .schedule-card {
+            background: white;
+            border-radius: 14px;
+            margin-bottom: 25px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .schedule-header {
+            padding: 18px 24px;
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .schedule-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--dark);
+        }
+        
+        .schedule-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            padding: 20px 24px;
+            background: white;
+        }
+        
+        .info-item .label {
+            font-size: 11px;
+            color: var(--gray);
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        .info-item .value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .map-container {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            height: 500px;
+            margin-bottom: 25px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+            background: #e8eef4;
+        }
+        
+        .progress-container {
+            background: white;
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 13px;
+            color: var(--gray);
+        }
+        
+        .progress-bar {
+            height: 10px;
+            background: #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #16a34a, #22c55e);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-live {
+            background: #dcfce7;
+            color: #166534;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-waiting {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-completed {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-bottom: 15px;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        
+        .refresh-info {
+            font-size: 12px;
+            color: var(--gray);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .live-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #16a34a;
+            animation: pulse 2s infinite;
+        }
+        
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            border-radius: 14px;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #e5e7eb;
+            border-top-color: #1a73e8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .control-buttons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .btn-control {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        
+        .btn-start {
+            background: #16a34a;
+            color: white;
+        }
+        
+        .btn-start:hover {
+            background: #15803d;
+            transform: translateY(-2px);
+        }
+        
+        .btn-reset {
+            background: #d97706;
+            color: white;
+        }
+        
+        .btn-reset:hover {
+            background: #b45309;
+            transform: translateY(-2px);
+        }
+        
+        .btn-step {
+            background: #1a73e8;
+            color: white;
+        }
+        
+        .btn-step:hover {
+            background: #1557b0;
+            transform: translateY(-2px);
+        }
+        
+        .time-info {
+            font-size: 13px;
+            color: var(--gray);
+            margin-top: 5px;
+        }
+        
+        .eta-info {
+            background: #fef3c7;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 70px;
+            }
+            .sidebar-brand h3, .sidebar-brand span,
+            .sidebar-nav a span, .sidebar-nav .nav-label,
+            .user-details {
+                display: none;
+            }
+            .sidebar-nav a {
+                justify-content: center;
+                padding: 12px;
+            }
+            .main-content {
+                margin-left: 70px;
+            }
+            .schedule-info {
+                grid-template-columns: 1fr;
+            }
+            .map-container {
+                height: 350px;
+            }
+            .control-buttons {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <div class="icon">🚌</div>
+            <div>
+                <h3>SRMSS</h3>
+                <span>Customer Portal</span>
+            </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <div class="nav-label">Main Menu</div>
+            <a href="/customer/dashboard">📊 Dashboard</a>
+            <a href="/customer/routes">🔍 Find Routes</a>
+            <a href="/customer/bookings">📅 My Bookings</a>
+            <a href="/customer/schedules">⏰ Schedules</a>
+            <a href="/customer/track" class="active">📍 Track Bus</a>
+            
+            <div class="nav-label" style="margin-top: 20px;">Account</div>
+            <a href="/customer/profile">👤 My Profile</a>
+            <a href="/customer/history">📋 Booking History</a>
+            <a href="/customer/support">💬 Support</a>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">{{ session.get('first_name', 'C')[0] }}{{ session.get('last_name', 'U')[0] }}</div>
+                <div class="user-details">
+                    <div class="name">{{ session.get('first_name', 'Customer') }} {{ session.get('last_name', 'User') }}</div>
+                    <div class="role">Customer</div>
+                </div>
+            </div>
+            <a href="/logout" class="btn-logout">🚪 Logout</a>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="top-bar">
+            <h2>📍 Live Bus Tracking</h2>
+            <div class="refresh-info">
+                <div class="live-dot"></div>
+                <span>Auto-updating every 3 seconds</span>
+            </div>
+        </div>
+        
+        <div class="content-area">
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <a href="/customer/schedules" class="back-link">← Back to Schedules</a>
+            
+            <div class="control-buttons">
+                <button class="btn-control btn-start" id="startBtn" onclick="startBusSimulation()">
+                    🚍 Start Bus Movement
+                </button>
+                <button class="btn-control btn-reset" onclick="resetBusPosition()">
+                    🔄 Reset to Start
+                </button>
+                <button class="btn-control btn-step" onclick="moveBusStep()">
+                    ⏩ Move One Step
+                </button>
+            </div>
+            
+            <!-- Schedule Information -->
+            <div class="schedule-card">
+                <div class="schedule-header">
+                    <span class="schedule-title">🚌 {{ schedule.route_name }}</span>
+                </div>
+                <div class="schedule-info">
+                    <div class="info-item">
+                        <div class="label">From → To</div>
+                        <div class="value">{{ schedule.start_point }} → {{ schedule.end_point }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="label">Travel Date</div>
+                        <div class="value">{{ schedule.schedule_date }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="label">Departure → Arrival</div>
+                        <div class="value">{{ schedule.departure_time }} → {{ schedule.arrival_time }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="label">Vehicle</div>
+                        <div class="value">{{ schedule.registration_number }} ({{ schedule.vehicle_code }})</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="label">Driver</div>
+                        <div class="value">{{ schedule.driver_name }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="label">Distance</div>
+                        <div class="value">{{ schedule.total_distance }} km</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Time-based Travel Info -->
+            <div class="schedule-card" id="timeInfoCard">
+                <div class="schedule-header">
+                    <span class="schedule-title">⏰ Time-Based Travel Information</span>
+                </div>
+                <div class="schedule-info">
+                    <div class="info-item">
+                        <div class="label">Departure Time</div>
+                        <div class="value" id="departureTimeDisplay">{{ schedule.departure_time }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="label">Arrival Time</div>
+                        <div class="value" id="arrivalTimeDisplay">{{ schedule.arrival_time }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="label">Current Time Status</div>
+                        <div class="value" id="timeStatus">--</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="label">Estimated Speed</div>
+                        <div class="value" id="estimatedSpeed">-- km/h</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="label">Remaining Time</div>
+                        <div class="value" id="remainingTime">--</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="progress-container">
+                <div class="progress-label">
+                    <span>📍 Journey Progress</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-label" style="margin-top: 10px;">
+                    <span>🚍 Departure: {{ schedule.start_point }}</span>
+                    <span>🏁 Destination: {{ schedule.end_point }}</span>
+                </div>
+                <div id="etaInfo" class="eta-info" style="display: none;"></div>
+            </div>
+            
+            <!-- Map -->
+            <div class="map-container" id="mapContainer">
+                <div id="map"></div>
+                <div class="loading-overlay" id="loadingOverlay">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+            
+            <!-- Bus Info Panel -->
+            <div class="schedule-card">
+                <div class="schedule-header">
+                    <span class="schedule-title">🚍 Bus Information</span>
+                </div>
+                <div class="schedule-info">
+                    <div class="info-item">
+                        <div class="label">Status</div>
+                        <div class="value" id="busStatus">
+                            <span class="status-badge status-waiting">⏳ Waiting for bus to start</span>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="label">Current Speed</div>
+                        <div class="value" id="busSpeed">-- km/h</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="label">Direction</div>
+                        <div class="value" id="busHeading">--</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="label">Last Update</div>
+                        <div class="value" id="busUpdate">--</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="label">ETA</div>
+                        <div class="value" id="busETA">--</div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Route data passed from backend
+        var scheduleId = schedule.id ;
+        var startPointName = "{{ schedule.start_point }}";
+        var endPointName = "{{ schedule.end_point }}";
+        var departureTimeStr = "{{ schedule.departure_time }}";
+        var arrivalTimeStr = "{{ schedule.arrival_time }}";
+        var totalDistance = parseFloat("{{ schedule.total_distance }}");
+        
+        // Calculate travel duration in hours
+        function getTimeInHours(timeStr) {
+            var parts = timeStr.split(':');
+            return parseInt(parts[0]) + parseInt(parts[1]) / 60;
+        }
+        
+        var departureHours = getTimeInHours(departureTimeStr);
+        var arrivalHours = getTimeInHours(arrivalTimeStr);
+        var travelDurationHours = arrivalHours - departureHours;
+        if (travelDurationHours < 0) travelDurationHours += 24;
+        
+        // Calculate required speed (km/h)
+        var requiredSpeed = totalDistance / travelDurationHours;
+        
+        // Update time status display
+        function updateTimeStatus() {
+            var now = new Date();
+            var currentHours = now.getHours() + now.getMinutes() / 60;
+            var currentTimeStr = now.toLocaleTimeString();
+            
+            var departureTimeDisplay = document.getElementById('departureTimeDisplay');
+            var arrivalTimeDisplay = document.getElementById('arrivalTimeDisplay');
+            var timeStatus = document.getElementById('timeStatus');
+            var estimatedSpeedSpan = document.getElementById('estimatedSpeed');
+            var remainingTimeSpan = document.getElementById('remainingTime');
+            
+            if (currentHours < departureHours) {
+                var hoursUntilDeparture = (departureHours - currentHours).toFixed(1);
+                timeStatus.innerHTML = '<span class="status-badge status-waiting">⏳ Not yet departed (in ' + hoursUntilDeparture + ' hours)</span>';
+            } else if (currentHours > arrivalHours) {
+                timeStatus.innerHTML = '<span class="status-badge status-completed">✅ Journey should be completed</span>';
+            } else {
+                var elapsedHours = currentHours - departureHours;
+                var progressPercent = (elapsedHours / travelDurationHours) * 100;
+                var remainingHours = (arrivalHours - currentHours).toFixed(1);
+                timeStatus.innerHTML = '<span class="status-badge status-live">● On journey (ETA: ' + remainingHours + ' hours)</span>';
+                if (remainingTimeSpan) remainingTimeSpan.textContent = remainingHours + ' hours';
+            }
+            
+            if (estimatedSpeedSpan) {
+                estimatedSpeedSpan.textContent = Math.round(requiredSpeed) + ' km/h';
+            }
+        }
+        
+        // Real Sri Lankan main road routes between cities
+        function getMainRoadRoute(start, end) {
+            var startLower = start.toLowerCase();
+            var endLower = end.toLowerCase();
+            
+            // Kataragama to Jaffna via main highway (A2, A1, A9)
+            if ((startLower.includes('kataragama') || startLower.includes('katharagama')) && endLower.includes('jaffna')) {
+                return [
+                    [6.4167, 81.3333],  // Kataragama
+                    [6.4000, 81.3000],  // Tissa
+                    [6.3000, 81.2500],  // Lunugamvehera
+                    [6.2000, 81.2000],  // Hambantota junction
+                    [6.1500, 81.1500],  // Ambalantota
+                    [6.1000, 81.1000],  // Tangalle road
+                    [6.0500, 81.0500],  // Beliatta
+                    [6.0000, 81.0000],  // Matara junction (turn north)
+                    [6.1000, 80.9000],  // Akuressa
+                    [6.2000, 80.8000],  // Deniyaya
+                    [6.3000, 80.7000],  // Pelmadulla
+                    [6.4000, 80.6000],  // Ratnapura
+                    [6.5000, 80.5000],  // Kuruwita
+                    [6.6000, 80.4000],  // Avissawella
+                    [6.7000, 80.3000],  // Hanwella
+                    [6.8000, 80.2000],  // Homagama
+                    [6.9000, 80.1000],  // Maharagama
+                    [6.9271, 79.8612],  // Colombo
+                    [7.0000, 79.9000],  // Kadawatha
+                    [7.1000, 79.9800],  // Gampaha
+                    [7.2000, 80.0500],  // Veyangoda
+                    [7.3000, 80.1500],  // Nittambuwa
+                    [7.4000, 80.2500],  // Warakapola
+                    [7.4500, 80.3500],  // Mawanella
+                    [7.4800, 80.4500],  // Kadugannawa
+                    [7.5000, 80.5500],  // Peradeniya
+                    [7.2906, 80.6337],  // Kandy
+                    [7.5000, 80.6500],  // Matale
+                    [7.7000, 80.5500],  // Dambulla
+                    [8.0000, 80.5000],  // Habarana
+                    [8.3000, 80.4500],  // Mihintale
+                    [8.3114, 80.4037],  // Anuradhapura
+                    [8.5500, 80.4000],  // Medawachchiya
+                    [8.7500, 80.4000],  // Vavuniya
+                    [9.0000, 80.3800],  // Omanthai
+                    [9.2000, 80.3500],  // Kilinochchi
+                    [9.4000, 80.3000],  // Elephant Pass
+                    [9.5000, 80.2000],  // Pallai
+                    [9.6000, 80.1000],  // Chavakachcheri
+                    [9.6615, 80.0255]   // Jaffna
+                ];
+            }
+            
+            // Kataragama to Jaffna via eastern route
+            if ((startLower.includes('kataragama') || startLower.includes('katharagama')) && endLower.includes('jaffna')) {
+                return [
+                    [6.4167, 81.3333],  // Kataragama
+                    [6.5000, 81.4000],  // Siyambalanduwa
+                    [6.6000, 81.5000],  // Monaragala
+                    [6.7000, 81.6000],  // Wellawaya
+                    [6.8000, 81.7000],  // Buttala
+                    [6.9000, 81.8000],  // Kataragama junction
+                    [7.0000, 81.9000],  // Pottuvil
+                    [7.1000, 81.7000],  // Batticaloa
+                    [7.2000, 81.6000],  // Kalkudah
+                    [7.3000, 81.5000],  // Pasikudah
+                    [7.4000, 81.4000],  // Valaichchenai
+                    [7.5000, 81.3000],  // Kantale
+                    [7.6000, 81.2000],  // Trincomalee junction
+                    [7.7000, 81.1000],  // Habarana
+                    [8.0000, 80.5000],  // Habarana junction
+                    [8.3000, 80.4500],  // Mihintale
+                    [8.3114, 80.4037],  // Anuradhapura
+                    [8.5500, 80.4000],  // Medawachchiya
+                    [8.7500, 80.4000],  // Vavuniya
+                    [9.6615, 80.0255]   // Jaffna
+                ];
+            }
+            
+            // Default: return coordinates for start and end
+            return [getCityCoordinates(start), getCityCoordinates(end)];
+        }
+        
+        function getCityCoordinates(cityName) {
+            var cities = {
+                'Kataragama': [6.4167, 81.3333],
+                'Katharagama': [6.4167, 81.3333],
+                'Jaffna': [9.6615, 80.0255],
+                'Colombo': [6.9271, 79.8612],
+                'Kandy': [7.2906, 80.6337],
+                'Galle': [6.0328, 80.2168],
+                'Matara': [5.9491, 80.5439],
+                'Anuradhapura': [8.3114, 80.4037],
+                'Vavuniya': [8.7500, 80.4000],
+                'Trincomalee': [8.5774, 81.2128],
+                'Batticaloa': [7.7173, 81.7005],
+                'Hambantota': [6.1241, 81.1196],
+                'Ratnapura': [6.7055, 80.3843],
+                'Badulla': [6.9931, 81.0553],
+                'Nuwara Eliya': [6.9497, 80.7891],
+                'Kurunegala': [7.4863, 80.3623]
+            };
+            
+            for (var key in cities) {
+                if (cityName.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(cityName.toLowerCase())) {
+                    return cities[key];
+                }
+            }
+            return [7.8731, 80.7718];
+        }
+        
+        var startCoords = getCityCoordinates(startPointName);
+        var endCoords = getCityCoordinates(endPointName);
+        var routePoints = getMainRoadRoute(startPointName, endPointName);
+        
+        // Calculate bounds for route
+        var bounds = [];
+        for (var i = 0; i < routePoints.length; i++) {
+            bounds.push([routePoints[i][0], routePoints[i][1]]);
+        }
+        
+        var map = null;
+        var busMarker = null;
+        var refreshInterval = null;
+        var routeLine = null;
+        var totalSteps = routePoints.length - 1;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            loadBusLocation();
+            refreshInterval = setInterval(loadBusLocation, 3000);
+            updateTimeStatus();
+            setInterval(updateTimeStatus, 60000);
+        });
+        
+        function initMap() {
+            var mapContainer = document.getElementById('map');
+            if (!mapContainer) return;
+            
+            map = L.map('map').fitBounds(bounds, { padding: [50, 50] });
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+            
+            // Draw the main road route
+            routeLine = L.polyline(routePoints, {
+                color: '#1a73e8',
+                weight: 5,
+                opacity: 0.9
+            }).addTo(map);
+            
+            // Add start marker
+            var startIcon = L.divIcon({
+                html: '<div style="background: #16a34a; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"></div>',
+                iconSize: [24, 24]
+            });
+            L.marker(routePoints[0], { icon: startIcon })
+                .bindPopup('<strong>🚍 Departure: ' + startPointName + '<br>Time: ' + departureTimeStr + '</strong>')
+                .addTo(map);
+            
+            // Add end marker
+            var endIcon = L.divIcon({
+                html: '<div style="background: #ef4444; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"></div>',
+                iconSize: [24, 24]
+            });
+            L.marker(routePoints[routePoints.length - 1], { icon: endIcon })
+                .bindPopup('<strong>🏁 Destination: ' + endPointName + '<br>Arrival: ' + arrivalTimeStr + '</strong>')
+                .addTo(map);
+            
+            var loadingOverlay = document.getElementById('loadingOverlay');
+            if (loadingOverlay) loadingOverlay.style.display = 'none';
+            
+            setTimeout(function() {
+                if (map) map.invalidateSize();
+            }, 100);
+            
+            window.addEventListener('resize', function() {
+                if (map) map.invalidateSize();
+            });
+        }
+        
+        var busIcon = L.divIcon({
+            html: '<div style="font-size: 44px; background: white; border-radius: 50%; padding: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 3px solid #1a73e8; width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #ffffff, #f0f4ff);">🚌</div>',
+            className: 'bus-icon',
+            iconSize: [70, 70],
+            iconAnchor: [35, 35],
+            popupAnchor: [0, -35]
+        });
+        
+        function getPositionAlongRoute(progressPercent) {
+            var index = (progressPercent / 100) * totalSteps;
+            var idx1 = Math.floor(index);
+            var idx2 = Math.min(idx1 + 1, totalSteps);
+            var fraction = index - idx1;
+            
+            if (idx1 >= routePoints.length) return routePoints[routePoints.length - 1];
+            if (idx2 >= routePoints.length) return routePoints[idx1];
+            
+            var lat = routePoints[idx1][0] + (routePoints[idx2][0] - routePoints[idx1][0]) * fraction;
+            var lng = routePoints[idx1][1] + (routePoints[idx2][1] - routePoints[idx1][1]) * fraction;
+            
+            return [lat, lng];
+        }
+        
+        function calculateProgressFromTime() {
+            var now = new Date();
+            var currentHours = now.getHours() + now.getMinutes() / 60;
+            
+            if (currentHours <= departureHours) {
+                return 0;
+            } else if (currentHours >= arrivalHours) {
+                return 100;
+            } else {
+                var elapsedHours = currentHours - departureHours;
+                return (elapsedHours / travelDurationHours) * 100;
+            }
+        }
+        
+        function updateUIProgress(progress) {
+            var percentEl = document.getElementById('progressPercent');
+            var fillEl = document.getElementById('progressFill');
+            var etaInfo = document.getElementById('etaInfo');
+            var busETA = document.getElementById('busETA');
+            
+            if (percentEl) percentEl.textContent = Math.floor(progress) + '%';
+            if (fillEl) fillEl.style.width = progress + '%';
+            
+            var now = new Date();
+            var currentHours = now.getHours() + now.getMinutes() / 60;
+            
+            if (currentHours < departureHours) {
+                if (etaInfo) {
+                    etaInfo.style.display = 'block';
+                    etaInfo.innerHTML = '⏰ Bus departs at ' + departureTimeStr + ' (' + (departureHours - currentHours).toFixed(1) + ' hours from now)';
+                }
+                if (busETA) busETA.textContent = 'Departs at ' + departureTimeStr;
+            } else if (currentHours < arrivalHours) {
+                var remainingHours = (arrivalHours - currentHours).toFixed(1);
+                if (etaInfo) {
+                    etaInfo.style.display = 'block';
+                    etaInfo.innerHTML = '🚍 On route! ETA: ' + remainingHours + ' hours (' + formatTimeFromNow(remainingHours) + ')';
+                }
+                if (busETA) busETA.textContent = 'ETA: ' + remainingHours + ' hours';
+            } else {
+                if (etaInfo) {
+                    etaInfo.style.display = 'block';
+                    etaInfo.innerHTML = '✅ Journey completed! Arrived at ' + arrivalTimeStr;
+                }
+                if (busETA) busETA.textContent = 'Arrived at ' + arrivalTimeStr;
+            }
+        }
+        
+        function formatTimeFromNow(hours) {
+            var now = new Date();
+            var targetHours = now.getHours() + parseFloat(hours);
+            var targetHour = Math.floor(targetHours) % 24;
+            var targetMinute = Math.floor((targetHours % 1) * 60);
+            return targetHour.toString().padStart(2, '0') + ':' + targetMinute.toString().padStart(2, '0');
+        }
+        
+        function smoothMoveBus(marker, targetLat, targetLng, duration) {
+            duration = duration || 1000;
+            var startPos = marker.getLatLng();
+            var startLat = startPos.lat;
+            var startLng = startPos.lng;
+            var startTime = null;
+            
+            function animate(currentTime) {
+                if (!startTime) startTime = currentTime;
+                var elapsed = currentTime - startTime;
+                var progress = Math.min(elapsed / duration, 1);
+                var easeProgress = 1 - Math.pow(1 - progress, 3);
+                
+                var currentLat = startLat + (targetLat - startLat) * easeProgress;
+                var currentLng = startLng + (targetLng - startLng) * easeProgress;
+                
+                marker.setLatLng([currentLat, currentLng]);
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+        
+        function loadBusLocation() {
+            if (!map) return;
+            
+            fetch('/api/schedule-location/' + scheduleId)
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        if (data.no_location) {
+                            var progress = calculateProgressFromTime();
+                            var expectedPos = getPositionAlongRoute(progress);
+                            
+                            document.getElementById('busStatus').innerHTML = '<span class="status-badge status-waiting">⏳ Waiting for bus to start</span>';
+                            document.getElementById('busSpeed').textContent = '-- km/h';
+                            document.getElementById('busHeading').textContent = '--';
+                            document.getElementById('busUpdate').textContent = 'Not started yet';
+                            
+                            updateUIProgress(progress);
+                            
+                            if (!busMarker && expectedPos) {
+                                busMarker = L.marker(expectedPos, { icon: busIcon, zIndexOffset: 1000 })
+                                    .addTo(map);
+                            } else if (busMarker && expectedPos) {
+                                smoothMoveBus(busMarker, expectedPos[0], expectedPos[1], 500);
+                            }
+                            
+                            if (progress === 0) {
+                                map.setView(routePoints[0], 9);
+                            }
+                        } else if (data.location) {
+                            var loc = data.location;
+                            var currentLat = loc.latitude;
+                            var currentLng = loc.longitude;
+                            
+                            document.getElementById('busStatus').innerHTML = '<span class="status-badge status-live">● LIVE</span>';
+                            document.getElementById('busSpeed').textContent = loc.speed + ' km/h';
+                            document.getElementById('busHeading').textContent = loc.heading;
+                            document.getElementById('busUpdate').textContent = loc.updated_at;
+                            
+                            updateUIProgress(calculateProgressFromTime());
+                            
+                            if (busMarker) {
+                                smoothMoveBus(busMarker, currentLat, currentLng, 1000);
+                            } else {
+                                busMarker = L.marker([currentLat, currentLng], { icon: busIcon, zIndexOffset: 1000 })
+                                    .addTo(map);
+                            }
+                            
+                            map.setView([currentLat, currentLng], 10);
+                        }
+                    }
+                })
+                .catch(function(err) { console.error('Fetch error:', err); });
+        }
+        
+        function startBusSimulation() {
+            fetch('/test/start-bus-simulation/' + scheduleId)
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        alert('Bus movement started! The bus will now travel along the main road from ' + startPointName + ' to ' + endPointName + '.\nDeparture: ' + departureTimeStr + '\nArrival: ' + arrivalTimeStr + '\nSpeed: ~' + Math.round(requiredSpeed) + ' km/h');
+                        loadBusLocation();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(function(err) { console.error(err); });
+        }
+        
+        function resetBusPosition() {
+            fetch('/test/reset-bus-position/' + scheduleId)
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        alert('Bus reset to start position at ' + startPointName + '!');
+                        loadBusLocation();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(function(err) { console.error(err); });
+        }
+        
+        function moveBusStep() {
+            fetch('/test/move-bus-step/' + scheduleId)
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        loadBusLocation();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(function(err) { console.error(err); });
+        }
+        
+        window.addEventListener('beforeunload', function() {
+            if (refreshInterval) clearInterval(refreshInterval);
+        });
+    </script>
+    
+</body>
+</html>

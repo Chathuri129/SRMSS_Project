@@ -1,0 +1,316 @@
+{% extends "base.html" %}
+
+{% block title %}Maintenance Records - Depot Manager{% endblock %}
+
+{% block sidebar_nav %}
+<div class="nav-label">Main Menu</div>
+<a href="/depot-manager/dashboard">📊 Dashboard</a>
+
+<div class="nav-label" style="margin-top: 20px;">Route Management</div>
+<a href="/depot-manager/routes">🗺️ Manage Routes</a>
+
+<div class="nav-label" style="margin-top: 20px;">Vehicle Management</div>
+<a href="/depot-manager/vehicles">🚍 Manage Vehicles</a>
+<a href="/depot-manager/assign-vehicles">🚛 Assign Vehicles</a>
+
+<div class="nav-label" style="margin-top: 20px;">Schedule Management</div>
+<a href="/depot-manager/schedules">📅 Manage Schedules</a>
+<a href="/depot-manager/assign-drivers">👨‍✈️ Assign Drivers</a>
+
+<div class="nav-label" style="margin-top: 20px;">Operations</div>
+<a href="/depot-manager/fuel-logs">⛽ Fuel Logs</a>
+<a href="/depot-manager/maintenance" class="active">🔧 Maintenance</a>
+
+<!-- <div class="nav-label" style="margin-top: 20px;">Reports</div>
+<a href="/depot-manager/reports">📈 Reports</a> -->
+
+<div class="nav-label" style="margin-top: 20px;">Account</div>
+<a href="/profile">👤 My Profile</a>
+<a href="/notifications">🔔 Notifications</a>
+{% endblock %}
+
+{% block page_title %}Maintenance Records{% endblock %}
+
+{% block content %}
+<style>
+    .btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 6px; }
+    .badge-routine { background: #dbeafe; color: #1e40af; }
+    .badge-emergency { background: #fee2e2; color: #991b1b; }
+    .badge-corrective { background: #fef3c7; color: #92400e; }
+    .badge-preventive { background: #dcfce7; color: #166534; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px; color: #1e293b; }
+    .form-group input, .form-group select, .form-group textarea {
+        width: 100%; padding: 10px 14px;
+        border: 2px solid #e5e7eb; border-radius: 8px;
+        font-size: 14px; font-family: inherit;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+        outline: none; border-color: #8b5cf6;
+        box-shadow: 0 0 0 3px rgba(139,92,246,0.1);
+    }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .modal-overlay {
+        display: none; position: fixed; top: 0; left: 0;
+        width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+        z-index: 1000; align-items: center; justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+        background: white; border-radius: 16px; width: 90%; max-width: 650px;
+        max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .modal-header {
+        padding: 20px 24px; border-bottom: 1px solid #e5e7eb;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .modal-header h3 { font-size: 18px; font-weight: 700; }
+    .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b; }
+    .close-btn:hover { color: #ef4444; }
+    .modal-body { padding: 24px; }
+    .modal-footer {
+        padding: 16px 24px; border-top: 1px solid #e5e7eb;
+        display: flex; gap: 10px; justify-content: flex-end;
+    }
+    .btn-primary { background: #8b5cf6; color: white; }
+    .btn-primary:hover { background: #7c3aed; }
+    .btn-outline { background: white; color: #8b5cf6; border: 2px solid #8b5cf6; }
+    .stat-card-small {
+        background: white;
+        padding: 15px;
+        border-radius: 12px;
+        text-align: center;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .stat-number {
+        font-size: 28px;
+        font-weight: 700;
+        color: #8b5cf6;
+    }
+    .stat-label {
+        font-size: 12px;
+        color: #64748b;
+    }
+    .view-only-badge {
+        background: #f1f5f9;
+        color: #64748b;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: 600;
+        margin-left: 10px;
+    }
+</style>
+
+<div style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; padding: 25px 30px; border-radius: 14px; margin-bottom: 30px;">
+    <h2 style="margin-bottom: 5px;">🔧 Maintenance Records</h2>
+    <p style="opacity: 0.9; font-size: 14px;">View and record vehicle maintenance activities. <span class="view-only-badge">⚠️ View & Add Only - No Edit/Delete</span></p>
+</div>
+
+<!-- Monthly Statistics -->
+<div class="stats-grid" style="margin-bottom: 30px;">
+    <div class="stat-card-small">
+        <div class="stat-number">{{ monthly_stats.total_records or 0 }}</div>
+        <div class="stat-label">Maintenance Jobs (Month)</div>
+    </div>
+    <div class="stat-card-small">
+        <div class="stat-number">{{ monthly_stats.routine_count or 0 }}</div>
+        <div class="stat-label">Routine</div>
+    </div>
+    <div class="stat-card-small">
+        <div class="stat-number">{{ monthly_stats.emergency_count or 0 }}</div>
+        <div class="stat-label">Emergency</div>
+    </div>
+    <div class="stat-card-small">
+        <div class="stat-number">Rs. {{ "%.0f"|format(monthly_stats.total_cost or 0) }}</div>
+        <div class="stat-label">Total Cost (Month)</div>
+    </div>
+    <div class="stat-card-small">
+        <div class="stat-number">{{ maintenance_vehicles.count or 0 }}</div>
+        <div class="stat-label">Vehicles in Maintenance</div>
+    </div>
+</div>
+
+<!-- Maintenance Records Table -->
+<div class="card">
+    <div class="card-header">
+        <h3>📋 Maintenance History</h3>
+        <button class="btn btn-primary" onclick="openAddModal()">➕ Record Maintenance</button>
+    </div>
+    <div class="card-body no-padding">
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <th style="padding: 12px 16px;">Date</th>
+                        <th style="padding: 12px 16px;">Vehicle</th>
+                        <th style="padding: 12px 16px;">Type</th>
+                        <th style="padding: 12px 16px;">Description</th>
+                        <th style="padding: 12px 16px;">Labor Cost</th>
+                        <th style="padding: 12px 16px;">Parts Cost</th>
+                        <th style="padding: 12px 16px;">Total Cost</th>
+                        <th style="padding: 12px 16px;">Service Center</th>
+                        <th style="padding: 12px 16px;">Next Service</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if maintenance_logs %}
+                        {% for log in maintenance_logs %}
+                        <tr style="border-bottom: 1px solid #e5e7eb;">
+                            <td style="padding: 12px 16px;"><strong>{{ log.maintenance_date }}</strong></td>
+                            <td style="padding: 12px 16px;">
+                                {{ log.registration_number }}<br>
+                                <small style="color: #64748b;">{{ log.vehicle_code }}</small>
+                            </span>
+                            <td style="padding: 12px 16px;">
+                                {% if log.maintenance_type == 'routine' %}
+                                    <span class="badge-routine" style="padding: 4px 12px; border-radius: 20px;">🔵 Routine</span>
+                                {% elif log.maintenance_type == 'emergency' %}
+                                    <span class="badge-emergency" style="padding: 4px 12px; border-radius: 20px;">🔴 Emergency</span>
+                                {% elif log.maintenance_type == 'corrective' %}
+                                    <span class="badge-corrective" style="padding: 4px 12px; border-radius: 20px;">🟡 Corrective</span>
+                                {% else %}
+                                    <span class="badge-preventive" style="padding: 4px 12px; border-radius: 20px;">🟢 Preventive</span>
+                                {% endif %}
+                            </span>
+                            <td style="padding: 12px 16px; max-width: 250px;">{{ log.description[:80] }}{% if log.description|length > 80 %}...{% endif %}</span>
+                            <td style="padding: 12px 16px;">Rs. {{ "%.2f"|format(log.labor_cost|float) }}</span>
+                            <td style="padding: 12px 16px;">Rs. {{ "%.2f"|format(log.parts_cost|float) }}</span>
+                            <td style="padding: 12px 16px;"><strong>Rs. {{ "%.2f"|format(log.total_cost|float) }}</strong></span>
+                            <td style="padding: 12px 16px;">{{ log.service_center or 'N/A' }}</span>
+                            <td style="padding: 12px 16px;">{{ log.next_service_date or 'N/A' }}</span>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="9" style="text-align: center; padding: 50px; color: #64748b;">
+                                <div style="font-size: 48px; margin-bottom: 10px;">🔧</div>
+                                <strong>No maintenance records found</strong><br>
+                                <small>Click "Record Maintenance" to add your first maintenance record.</small>
+                            </span
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Maintenance Modal (Only Add - No Edit) -->
+<div class="modal-overlay" id="addModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>🔧 Record Maintenance</h3>
+            <button class="close-btn" onclick="closeAddModal()">✕</button>
+        </div>
+        <form method="POST" action="/depot-manager/maintenance" id="maintenanceForm">
+            <input type="hidden" name="action" value="add">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Vehicle *</label>
+                    <select name="vehicle_id" id="add_vehicle_id" required>
+                        <option value="">-- Select Vehicle --</option>
+                        {% for vehicle in vehicles %}
+                            <option value="{{ vehicle.id }}">{{ vehicle.registration_number }} ({{ vehicle.vehicle_code }}) - {{ vehicle.vehicle_type|title }} ({{ vehicle.status }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Maintenance Date *</label>
+                        <input type="date" name="maintenance_date" id="add_maintenance_date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Maintenance Type</label>
+                        <select name="maintenance_type" id="add_maintenance_type">
+                            <option value="routine">Routine</option>
+                            <option value="corrective">Corrective</option>
+                            <option value="preventive">Preventive</option>
+                            <option value="emergency">Emergency</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Description *</label>
+                    <textarea name="description" id="add_description" placeholder="Describe the maintenance work performed..." required></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Labor Cost (Rs.)</label>
+                        <input type="number" name="labor_cost" id="add_labor_cost" placeholder="0.00" step="0.01" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Parts Cost (Rs.)</label>
+                        <input type="number" name="parts_cost" id="add_parts_cost" placeholder="0.00" step="0.01" min="0" value="0">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Total Cost (Rs.) *</label>
+                        <input type="number" name="total_cost" id="add_total_cost" placeholder="Auto-calculated" required step="0.01" min="0" readonly style="background:#f1f5f9;">
+                    </div>
+                    <div class="form-group">
+                        <label>Service Center</label>
+                        <input type="text" name="service_center" id="add_service_center" placeholder="e.g., D*MO Motors">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Next Service Date</label>
+                    <input type="date" name="next_service_date" id="add_next_service_date">
+                    <small style="color: #64748b;">Suggested date for next maintenance</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeAddModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">💾 Save Record</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Set today's date as default for add modal
+    document.getElementById('add_maintenance_date').value = new Date().toISOString().split('T')[0];
+    
+    function openAddModal() {
+        document.getElementById('addModal').classList.add('active');
+        // Reset form
+        document.getElementById('maintenanceForm').reset();
+        document.getElementById('add_maintenance_date').value = new Date().toISOString().split('T')[0];
+        document.getElementById('add_labor_cost').value = 0;
+        document.getElementById('add_parts_cost').value = 0;
+        document.getElementById('add_total_cost').value = '';
+    }
+    
+    function closeAddModal() {
+        document.getElementById('addModal').classList.remove('active');
+    }
+    
+    // Auto-calculate total cost for Add Modal
+    const addLaborInput = document.getElementById('add_labor_cost');
+    const addPartsInput = document.getElementById('add_parts_cost');
+    
+    if (addLaborInput && addPartsInput) {
+        addLaborInput.addEventListener('input', calculateTotal);
+        addPartsInput.addEventListener('input', calculateTotal);
+    }
+    
+    function calculateTotal() {
+        const labor = parseFloat(document.getElementById('add_labor_cost').value) || 0;
+        const parts = parseFloat(document.getElementById('add_parts_cost').value) || 0;
+        const total = (labor + parts).toFixed(2);
+        document.getElementById('add_total_cost').value = total;
+    }
+    
+    // Close modal when clicking outside
+    document.getElementById('addModal')?.addEventListener('click', function(e) {
+        if (e.target === this) closeAddModal();
+    });
+</script>
+{% endblock %}

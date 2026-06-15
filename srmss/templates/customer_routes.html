@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find Routes - SRMSS Customer</title>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --dark: #1e293b;
+            --gray: #64748b;
+            --light: #f8fafc;
+            --border: #e5e7eb;
+            --white: #ffffff;
+            --danger: #ef4444;
+            --success: #16a34a;
+            --warning: #d97706;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #f1f5f9;
+            min-height: 100vh;
+            display: flex;
+        }
+        
+        .sidebar {
+            width: 260px; background: var(--dark); color: #cbd5e1;
+            min-height: 100vh; position: fixed; left: 0; top: 0; bottom: 0;
+            z-index: 100; display: flex; flex-direction: column;
+        }
+        
+        .sidebar-brand {
+            padding: 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; gap: 12px;
+        }
+        
+        .sidebar-brand .icon {
+            width: 40px; height: 40px; background: var(--primary);
+            border-radius: 10px; display: flex; align-items: center;
+            justify-content: center; font-size: 20px;
+        }
+        
+        .sidebar-brand h3 { font-size: 16px; font-weight: 700; color: white; }
+        .sidebar-brand span { font-size: 11px; color: #94a3b8; display: block; }
+        
+        .sidebar-nav { flex: 1; padding: 20px 15px; }
+        
+        .sidebar-nav .nav-label {
+            font-size: 10px; text-transform: uppercase; letter-spacing: 2px;
+            color: #64748b; margin-bottom: 10px; padding: 0 10px; font-weight: 700;
+        }
+        
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 15px; color: #94a3b8; text-decoration: none;
+            border-radius: 8px; font-size: 14px; font-weight: 500;
+            transition: all 0.2s; margin-bottom: 2px;
+        }
+        
+        .sidebar-nav a:hover { background: rgba(255,255,255,0.05); color: white; }
+        .sidebar-nav a.active { background: rgba(26,115,232,0.2); color: #60a5fa; font-weight: 600; }
+        
+        .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+        
+        .user-info { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        
+        .user-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: var(--primary); display: flex; align-items: center;
+            justify-content: center; font-weight: 600; font-size: 14px; color: white;
+        }
+        
+        .user-details { flex: 1; }
+        .user-details .name { font-weight: 600; font-size: 13px; color: white; }
+        .user-details .role { font-size: 11px; color: #94a3b8; }
+        
+        .btn-logout {
+            display: block; width: 100%; padding: 8px;
+            background: rgba(239,68,68,0.1); color: #ef4444;
+            border: 1px solid rgba(239,68,68,0.3); border-radius: 6px;
+            text-align: center; text-decoration: none;
+            font-size: 13px; font-weight: 500; transition: all 0.2s;
+        }
+        .btn-logout:hover { background: rgba(239,68,68,0.2); }
+        
+        .main-content { margin-left: 260px; flex: 1; }
+        
+        .top-bar {
+            background: white; padding: 16px 30px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 50;
+        }
+        
+        .top-bar h2 { font-size: 20px; font-weight: 700; color: var(--dark); }
+        
+        .content-area { padding: 30px; }
+        
+        .flash-message {
+            padding: 12px 15px; border-radius: 8px; margin-bottom: 20px;
+            font-size: 14px; font-weight: 500;
+        }
+        .flash-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .flash-info { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+        
+        .search-bar {
+            background: white; padding: 25px; border-radius: 14px;
+            margin-bottom: 25px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .search-form {
+            display: grid; grid-template-columns: 1fr 1fr auto; gap: 15px;
+            align-items: end;
+        }
+        
+        .search-group {
+            display: flex; flex-direction: column; gap: 6px;
+        }
+        
+        .search-group label {
+            font-size: 12px; font-weight: 600; color: var(--gray);
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        
+        .search-group input {
+            padding: 12px 14px; border: 2px solid var(--border);
+            border-radius: 8px; font-size: 14px; transition: all 0.3s;
+        }
+        
+        .search-group input:focus {
+            outline: none; border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(26,115,232,0.1);
+        }
+        
+        .btn-search {
+            padding: 12px 28px; background: var(--primary); color: white;
+            border: none; border-radius: 8px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s; height: 46px;
+            font-size: 14px;
+        }
+        .btn-search:hover { background: #1557b0; transform: translateY(-1px); }
+        
+        .btn-clear {
+            padding: 12px 20px; background: #e5e7eb; color: var(--dark);
+            border: none; border-radius: 8px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s; height: 46px;
+            font-size: 14px; text-decoration: none; display: inline-flex;
+            align-items: center;
+        }
+        .btn-clear:hover { background: #d1d5db; }
+        
+        .search-summary {
+            margin-bottom: 20px; padding: 10px 0;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        
+        .route-count {
+            font-size: 14px; color: var(--gray);
+        }
+        .route-count strong {
+            color: var(--dark); font-size: 18px;
+        }
+        
+        .route-card {
+            background: white; border-radius: 14px; margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden;
+            transition: all 0.2s;
+        }
+        .route-card:hover { box-shadow: 0 8px 25px rgba(0,0,0,0.08); transform: translateY(-2px); }
+        
+        .route-header {
+            padding: 18px 24px; background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .route-title {
+            font-size: 18px; font-weight: 700; color: var(--dark);
+        }
+        
+        .route-code {
+            font-size: 12px; color: var(--gray); font-family: monospace;
+            margin-left: 8px;
+        }
+        
+        .route-body {
+            padding: 20px 24px;
+            display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 20px; align-items: center;
+        }
+        
+        .route-info .label {
+            font-size: 11px; color: var(--gray); text-transform: uppercase;
+            margin-bottom: 5px; font-weight: 600;
+        }
+        .route-info .value {
+            font-size: 15px; font-weight: 600; color: var(--dark);
+        }
+        
+        .route-stops {
+            background: #f8fafc; padding: 12px 24px;
+            border-top: 1px solid var(--border);
+            font-size: 13px; color: var(--gray);
+        }
+        
+        .badge {
+            padding: 4px 12px; border-radius: 20px;
+            font-size: 11px; font-weight: 700; display: inline-block;
+        }
+        .badge-urban { background: #dbeafe; color: #1e40af; }
+        .badge-express { background: #fef3c7; color: #92400e; }
+        .badge-intercity { background: #dcfce7; color: #166534; }
+        .badge-rural { background: #fce7f3; color: #9d174d; }
+        
+        .btn-book {
+            padding: 10px 20px; background: var(--success); color: white;
+            border: none; border-radius: 8px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s; text-decoration: none;
+            display: inline-block; text-align: center;
+        }
+        .btn-book:hover { background: #15803d; transform: translateY(-1px); }
+        
+        .no-results {
+            text-align: center; padding: 60px; background: white;
+            border-radius: 14px; color: var(--gray);
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar { width: 70px; }
+            .sidebar-brand h3, .sidebar-brand span,
+            .sidebar-nav a span, .sidebar-nav .nav-label,
+            .user-details { display: none; }
+            .sidebar-nav a { justify-content: center; padding: 12px; }
+            .main-content { margin-left: 70px; }
+            .route-body { grid-template-columns: 1fr; gap: 10px; text-align: center; }
+            .search-form { grid-template-columns: 1fr; }
+            .search-summary { flex-direction: column; gap: 10px; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <div class="icon">🚌</div>
+            <div>
+                <h3>SRMSS</h3>
+                <span>Customer Portal</span>
+            </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <div class="nav-label">Main Menu</div>
+            <a href="/customer/dashboard">📊 Dashboard</a>
+            <a href="/customer/routes" class="active">🔍 Find Routes</a>
+            <a href="/customer/bookings">📅 My Bookings</a>
+            <a href="/customer/schedules">⏰ Schedules</a>
+            <a href="/customer/track">📍 Track Bus</a>
+            
+            <div class="nav-label" style="margin-top: 20px;">Account</div>
+            <a href="/customer/profile">👤 My Profile</a>
+            <a href="/customer/history">📋 Booking History</a>
+            <a href="/customer/support">💬 Support</a>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">{{ session.get('first_name', 'C')[0] }}{{ session.get('last_name', 'U')[0] }}</div>
+                <div class="user-details">
+                    <div class="name">{{ session.get('first_name', 'Customer') }} {{ session.get('last_name', 'User') }}</div>
+                    <div class="role">Customer</div>
+                </div>
+            </div>
+            <a href="/logout" class="btn-logout">🚪 Logout</a>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="top-bar">
+            <h2>🔍 Find Bus Routes</h2>
+            <span style="color:var(--gray);">Search and book your journey</span>
+        </div>
+        
+        <div class="content-area">
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <!-- Search Bar - SINGLE VERSION -->
+            <div class="search-bar">
+                <form class="search-form" method="GET" action="/customer/routes" id="searchForm">
+                    <div class="search-group">
+                        <label>📍 From</label>
+                        <input type="text" name="from" id="from" placeholder="Enter starting point" 
+                               value="{{ search_from or '' }}">
+                    </div>
+                    <div class="search-group">
+                        <label>🏁 To</label>
+                        <input type="text" name="to" id="to" placeholder="Enter destination" 
+                               value="{{ search_to or '' }}">
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button type="submit" class="btn-search">🔍 Search Routes</button>
+                        {% if search_from or search_to %}
+                        <a href="/customer/routes" class="btn-clear">Clear</a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Search Summary -->
+            {% if search_from or search_to %}
+            <div class="search-summary">
+                <div class="route-count">
+                    <strong>{{ routes|length }}</strong> route(s) found 
+                    from <strong>"{{ search_from or 'Anywhere' }}"</strong> to <strong>"{{ search_to or 'Anywhere' }}"</strong>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Results -->
+            {% if routes %}
+                {% for route in routes %}
+                <div class="route-card">
+                    <div class="route-header">
+                        <div>
+                            <span class="route-title">{{ route.route_name }}</span>
+                            <span class="route-code">({{ route.route_code }})</span>
+                        </div>
+                        {% if route.route_type == 'urban' %}
+                            <span class="badge badge-urban">🏙️ Urban</span>
+                        {% elif route.route_type == 'express' %}
+                            <span class="badge badge-express">🚄 Express</span>
+                        {% elif route.route_type == 'intercity' %}
+                            <span class="badge badge-intercity">🏛️ Intercity</span>
+                        {% elif route.route_type == 'rural' %}
+                            <span class="badge badge-rural">🌾 Rural</span>
+                        {% else %}
+                            <span class="badge">{{ route.route_type|title }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="route-body">
+                        <div class="route-info">
+                            <div class="label">Route</div>
+                            <div class="value">{{ route.start_point }} → {{ route.end_point }}</div>
+                        </div>
+                        <div class="route-info">
+                            <div class="label">Distance</div>
+                            <div class="value">{{ route.total_distance }} km</div>
+                        </div>
+                        <div class="route-info">
+                            <div class="label">Fare</div>
+                            <div class="value">Rs. {{ "%.2f"|format(route.base_fare or 0) }}</div>
+                        </div>
+                        <div class="route-info">
+                            <div class="label">Daily Trips</div>
+                            <div class="value">{{ route.schedule_count or '0' }}</div>
+                        </div>
+                    </div>
+                    {% if route.intermediate_stops %}
+                    <div class="route-stops">
+                        📍 Stops: {{ route.intermediate_stops }}
+                    </div>
+                    {% endif %}
+                    <div style="padding: 12px 24px 20px; text-align: right;">
+                        <a href="/customer/schedules?route_id={{ route.id }}" class="btn-book">View Schedule & Book →</a>
+                    </div>
+                </div>
+                {% endfor %}
+                
+            {% else %}
+                <div class="no-results">
+                    <div style="font-size: 48px; margin-bottom: 15px;">🗺️</div>
+                    <h3 style="margin-bottom: 10px;">No routes found</h3>
+                    {% if search_from or search_to %}
+                    <p>No routes available from <strong>"{{ search_from or 'Anywhere' }}"</strong> to <strong>"{{ search_to or 'Anywhere' }}"</strong>.</p>
+                    <p style="margin-top: 10px;">Try searching with different locations or <a href="/customer/routes" style="color: var(--primary);">clear the search</a> to see all routes.</p>
+                    {% else %}
+                    <p>No routes available at the moment. Please check back later.</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+            
+        </div>
+    </div>
+    
+    <script>
+        // Simple form handling - allow Enter key to submit
+        document.getElementById('searchForm').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.submit();
+            }
+        });
+    </script>
+    
+</body>
+</html>
